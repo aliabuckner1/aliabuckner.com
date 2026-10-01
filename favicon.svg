@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <style>
+    .tile { fill: #e9f1f4; }
+    @media (prefers-color-scheme: dark) { .tile { fill: #0f2a33; } }
+  </style>
+  <rect class="tile" width="64" height="64" rx="14"/>
+  <g fill="none" stroke="#e8497a" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="32.75" y1="25" x2="32.75" y2="41.25" stroke-width="7.75"/>
+    <polyline points="32,26.9 21.25,18.75 18,5" stroke-width="3.5"/>
+    <polyline points="33.75,28.5 45.25,30 52.75,21.25" stroke-width="3.5"/>
+    <polyline points="31.75,41.25 30,52.5 31.75,58.75" stroke-width="3.75"/>
+    <polyline points="33.75,41.25 41.5,48.75 40.25,58.1" stroke-width="3.75"/>
+  </g>
+  <circle cx="32.75" cy="14.5" r="5.75" fill="#e8497a"/>
+</svg>
