@@ -17,13 +17,13 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Alia Buckner</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=DM+Mono&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;600&family=DM+Mono&display=swap">
 <style>
   /* layout: one full-height stage that is the toy, with a slim switcher rail underneath */
   :root {
     --bg: #e9f1f4; --fg: #0f2a33; --muted: #557078; --line: #c5d5da;
     --pink: #e8497a; --sun: #f2b705; --sea: #4fa9bd; --foam: #ffffff;
-    --display: "Bricolage Grotesque", system-ui, sans-serif;
+    --display: "Jost", system-ui, sans-serif;
     --mono: "DM Mono", ui-monospace, Menlo, monospace;
   }
   @media (prefers-color-scheme: dark) {
@@ -194,13 +194,14 @@
       C[k] = s.getPropertyValue("--" + k).trim();
     }
   };
-  const font = (px) => `700 ${px}px "Bricolage Grotesque", system-ui, sans-serif`;
+  const font = (px) => `600 ${px}px "Jost", system-ui, sans-serif`;
+  const linkFont = (px) => `400 ${px}px "Jost", system-ui, sans-serif`; // the links line is lighter than the name
   const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
   const ease = (t) => t * t * (3 - 2 * t);
 
   // Wraps text and returns one entry per visible letter, centred on (cx, cy).
-  const layout = (text, maxW, fs, cx, cy) => {
-    ctx.font = font(fs);
+  const layout = (text, maxW, fs, cx, cy, f = font) => {
+    ctx.font = f(fs);
     const lines = [];
     let cur = "";
     let fits = true;
@@ -224,24 +225,24 @@
     });
     return { glyphs, height, fits, fs, lines: lines.length };
   };
-  const fit = (text, maxW, maxH, fs, cx, cy) => {
-    let l = layout(text, maxW, fs, cx, cy);
-    while ((l.height > maxH || !l.fits) && fs > 9) { fs *= 0.93; l = layout(text, maxW, fs, cx, cy); }
+  const fit = (text, maxW, maxH, fs, cx, cy, f = font) => {
+    let l = layout(text, maxW, fs, cx, cy, f);
+    while ((l.height > maxH || !l.fits) && fs > 9) { fs *= 0.93; l = layout(text, maxW, fs, cx, cy, f); }
     // balance the lines so a single word is never left alone on the last one
     let w = maxW;
     while (l.lines > 1 && w > maxW * 0.5) {
-      const t = layout(text, w * 0.95, fs, cx, cy);
+      const t = layout(text, w * 0.95, fs, cx, cy, f);
       if (t.lines !== l.lines || !t.fits) break;
       l = t; w *= 0.95;
     }
     return l;
   };
   // ox/oy shift the glyph so its ink, not its type box, sits on (x, y); the physics bodies are centred on the ink
-  const drawGlyph = (ch, x, y, rot, fs, color, ox = 0, oy = 0) => {
+  const drawGlyph = (ch, x, y, rot, fs, color, ox = 0, oy = 0, f = font) => {
     ctx.save();
     ctx.translate(x, y);
     if (rot) ctx.rotate(rot);
-    ctx.font = font(fs);
+    ctx.font = f(fs);
     ctx.fillStyle = color;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -251,17 +252,18 @@
 
   // the ink box of each character at 100px, measured once: its size and how far its centre sits from the type centre
   const inkCache = new Map();
-  const inkOf = (ch) => {
-    if (!inkCache.has(ch)) {
+  const inkOf = (ch, f = font) => {
+    const key = (f === font ? "" : "link:") + ch;
+    if (!inkCache.has(key)) {
       ctx.save();
-      ctx.font = font(100); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = f(100); ctx.textAlign = "center"; ctx.textBaseline = "middle";
       const m = ctx.measureText(ch);
       const L = m.actualBoundingBoxLeft || 0, R = m.actualBoundingBoxRight || m.width / 2;
       const A = m.actualBoundingBoxAscent || 35, D = m.actualBoundingBoxDescent || 35;
       ctx.restore();
-      inkCache.set(ch, { ox: (R - L) / 2, oy: (D - A) / 2, w: L + R, h: A + D });
+      inkCache.set(key, { ox: (R - L) / 2, oy: (D - A) / 2, w: L + R, h: A + D });
     }
-    return inkCache.get(ch);
+    return inkCache.get(key);
   };
   const ROUND = new Set(["o", "0", "."]);
 
@@ -558,7 +560,7 @@
       // the name, big, a little above the middle; the links line sits underneath it
       this.layouts = [fit(PILE_STAGES[0], maxW, H * 0.3, base * 0.2, W / 2, H * NAME_Y)];
       const name = this.layouts[0];
-      this.linkLayout = fit(LINKS_LINE, maxW, H * 0.2, base * 0.085, W / 2, H * NAME_Y + name.height / 2 + base * 0.14);
+      this.linkLayout = fit(LINKS_LINE, maxW, H * 0.2, base * 0.085, W / 2, H * NAME_Y + name.height / 2 + base * 0.14, linkFont);
       this.linkSpeed = this.linkLayout.glyphs.map(() => 1 + Math.random() * 0.6);
       this.linkSpin = this.linkLayout.glyphs.map(() => (Math.random() - 0.5) * 1.2);
       if (!keep) { this.linkShow = 1; this.linkDir = 1; }
@@ -624,14 +626,14 @@
     },
     // each letter's physics shape is its own ink box: "i" is tall and thin and topples, "m" is wide,
     // "o" is a circle and rolls, "." is a tiny marble. Corners are rounded so they tumble rather than snag.
-    letterBody(ch, fs, x, y) {
-      const M = window.Matter, k = inkOf(ch), s = fs / 100;
+    letterBody(ch, fs, x, y, f = font) {
+      const M = window.Matter, k = inkOf(ch, f), s = fs / 100;
       const w = Math.max(k.w * s, fs * 0.18), h = Math.max(k.h * s, fs * 0.18);
       const opts = { restitution: 0.35, friction: 0.5, frictionAir: 0.012 };
       const b = ROUND.has(ch)
         ? M.Bodies.circle(x, y, (w + h) / 4, opts)
         : M.Bodies.rectangle(x, y, w, h, { ...opts, chamfer: { radius: Math.min(w, h) * 0.28 } });
-      b.ch = ch; b.fs = fs; b.oxu = k.ox / 100; b.oyu = k.oy / 100;
+      b.ch = ch; b.fs = fs; b.oxu = k.ox / 100; b.oyu = k.oy / 100; if (f !== font) b.linkFont = f;
       return b;
     },
     make(stage, rain) {
@@ -1764,7 +1766,7 @@
       if (this.state === "set" && (this.linkShow ?? 1) > 0.5) {
         const L = this.linkLayout;
         for (const g of L.glyphs) {
-          const k = inkOf(g.ch), b = this.letterBody(g.ch, L.fs, g.x + k.ox * L.fs / 100, g.y + k.oy * L.fs / 100);
+          const k = inkOf(g.ch, linkFont), b = this.letterBody(g.ch, L.fs, g.x + k.ox * L.fs / 100, g.y + k.oy * L.fs / 100, linkFont);
           b.extra = true; b.floater = true; b.hover = true; b.hoverT = 1.4 + Math.random() * 1.2;
           M.Body.setDensity(b, 0.0006); // a bit lighter than the name, so falling letters knock them about
           b.collisionFilter.mask = 0xffff & ~2 & ~4; // they fall out through the floor (and never catch on the ceiling)
@@ -2107,7 +2109,7 @@
         // after a drop the letters stay coloured, changing colour on every kick
         const tint = this.dropSec ? [C.pink, C.sun, C.sea][((this.dropColor || 0) + b.id) % 3] : C.fg;
         const glow = this.spelled && this.spelled.bodies.includes(b);
-        drawGlyph(b.ch, b.position.x, b.position.y, b.angle, b.fs, b === this.drag || glow ? C.pink : tint, (b.oxu || 0) * b.fs, (b.oyu || 0) * b.fs);
+        drawGlyph(b.ch, b.position.x, b.position.y, b.angle, b.fs, b === this.drag || glow ? C.pink : tint, (b.oxu || 0) * b.fs, (b.oyu || 0) * b.fs, b.linkFont);
       }
       this.drawDancers();
       this.peekDraw();
@@ -2146,7 +2148,7 @@
         const L = this.linkLayout;
         L.glyphs.forEach((g, i) => {
           const off = (1 - ease(ls)) * (g.y + L.fs * 2) * this.linkSpeed[i];
-          drawGlyph(g.ch, g.x, g.y - off, (1 - ls) * this.linkSpin[i], L.fs, C.fg);
+          drawGlyph(g.ch, g.x, g.y - off, (1 - ls) * this.linkSpin[i], L.fs, C.fg, 0, 0, linkFont);
         });
         if (ls === 1 && this.state === "set") {
           ctx.strokeStyle = C.pink; ctx.lineWidth = 3; ctx.lineCap = "round";
@@ -2281,8 +2283,8 @@
   };
   let started = false;
   const once = () => { if (!started) { started = true; start(); } };
-  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(once);
-  setTimeout(once, 1500);
+  (document.fonts ? Promise.all([document.fonts.load(font(100)), document.fonts.load(linkFont(100))]).then(() => document.fonts.ready) : Promise.resolve()).then(once, once);
+  setTimeout(once, 2500);
 })();
 </script>
 </body>
