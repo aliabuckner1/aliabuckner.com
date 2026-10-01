@@ -149,8 +149,8 @@
   const MAX_ROUNDS = 3; // rounds per appearance of a game; after that it's "done" until the game comes back
   const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
   const SCORE_TEXT_SECONDS = 2.2; // how long "+2", "3-pointer" and "no dunks" stay up
-  const BEAT_AFTER_THUMPS = 6; // double-tap thumps in a row before the page picks up the rhythm and keeps drumming
-  const BEAT_MAX_GAP = 1.2; // seconds allowed between those thumps
+  const BEAT_AFTER_THUMPS = 4; // thumps in a row (one bar) before the page picks up the rhythm and keeps drumming
+  const BEAT_MAX_GAP = 1.5; // seconds allowed between those thumps; within it, single taps keep thumping
   // the word game: type "words" to bring out the shelf
   const WORD_GAME_SECONDS = 60;
   const WORD_POINTS = [0, 0, 0, 1, 2, 4, 7, 10, 15, 15]; // by word length
@@ -759,21 +759,26 @@
     thump(p, auto = false, kind = "kick") {
       const power = { kick: 1, snare: 0.55, hat: 0.28 }[kind];
       if (kind === "kick") sound.thud(p.x); else if (kind === "snare") sound.snare(p.x); else sound.hat(p.x, 0.12);
-      this.rings.push({ x: p.x, y: p.y, t: 0, size: power });
+      let size = power;
       if (!auto && !this.beat && !this.wg) {
-        // keep drumming double-taps and the page picks up your tempo and carries on by itself
+        // after a double-tap thump, single taps keep thumping for a moment; keep going for a bar and the page
+        // picks up your tempo and carries on by itself. Each ring is a little bigger, so it feels like it's building.
         const now = performance.now() / 1000;
         this.thumps = this.thumps.filter((t) => now - t.at < BEAT_MAX_GAP * BEAT_AFTER_THUMPS);
         const last = this.thumps[this.thumps.length - 1];
         if (last && now - last.at > BEAT_MAX_GAP) this.thumps = [];
         this.thumps.push({ at: now, x: p.x, y: p.y });
+        this.warmUntil = now + BEAT_MAX_GAP;
+        size = power * (1 + 0.3 * (this.thumps.length - 1));
         if (this.thumps.length >= BEAT_AFTER_THUMPS) this.startBeat();
       }
+      this.rings.push({ x: p.x, y: p.y, t: 0, size });
       const M = window.Matter, up = this.flip ? 1 : -1;
       if (this.state !== "loose") this.collapse(p);
       this.idle = 0;
       const reach = Math.max(W, H) * 0.35 * (kind === "kick" ? 1 : kind === "snare" ? 0.7 : 0.45);
       for (const b of this.bodies) {
+        if (b.floater) continue; // the link letters are on their way out; thumps don't keep them in play
         const dx = b.position.x - p.x, d = Math.hypot(dx, b.position.y - p.y) || 1;
         const near = Math.exp(-d / reach);
         if (kind !== "kick" && near < 0.15) continue;
@@ -877,6 +882,8 @@
     dbl(p) {
       if (!this.ok || this.held) return;
       if (this.wg && this.onShelf(p)) return;
+      // if the first tap of this double-tap already thumped, the second one shouldn't thump again
+      if (performance.now() - (this.tapThumpAt || 0) < 400) return;
       // while the beat runs, double-taps build the loop
       if (this.beat) {
         clearTimeout(this.beatStopT);
@@ -1900,17 +1907,19 @@
         if (k) { this.openLink(k.word); return; }
       }
       // while the beat is going, a lone click on empty space stops it. It waits a beat first in case the click is half of a
-      // double-tap (those just play along), and ignores clicks in the first second so overshooting the count is fine.
+      // double-tap (those add drums), and ignores clicks just after the beat starts, in case you're still tapping along.
       if (this.beat) {
         clearTimeout(this.beatStopT); this.knocked = false;
         // a click right on a letter plays its note (and swells it); exact hits only, so empty space is easy to find
         const letter = window.Matter.Query.point(this.bodies, p)[0];
         if (letter) { this.poke(letter); return; }
-        if (performance.now() / 1000 - this.beat.startedAt < 1) return;
+        if (performance.now() / 1000 - this.beat.startedAt < 1.6) return;
         this.beatStopT = setTimeout(() => { if (cur === this && this.beat) this.stopBeat(); }, 360);
         return;
       }
       const hit = this.hitAt(p);
+      // just after a thump, single taps on empty space thump too
+      if (!hit && performance.now() / 1000 < (this.warmUntil || 0)) { this.tapThumpAt = performance.now(); this.thump(p); return; }
       if (hit) { if (!this.knocked) this.poke(hit); this.knocked = false; return; }
       // a click on empty space knocks a standing sentence over; once the letters are loose it does nothing,
       // and they put themselves back after PILE_SELF_FIX seconds left alone
@@ -1962,6 +1971,10 @@
               M.Body.applyForce(b, b.position, { x: 0, y: -b.mass * 0.001 * this.engine.gravity.y });
               M.Body.setVelocity(b, { x: b.velocity.x * 0.9, y: b.velocity.y * 0.9 });
               if (b.hoverT <= 0) b.hover = false;
+            } else {
+              // one that comes to rest on the pile slips through it after a second, so it still leaves the screen
+              b.restT = b.speed < 0.6 ? (b.restT || 0) + dt : 0;
+              if (b.restT > 1) b.collisionFilter.mask = 0;
             }
             if (b.position.y > H + b.fs * 2 || b.position.y < -b.fs * 3) floatedAway.push(b);
             continue;
