@@ -62,6 +62,7 @@
     order: 2; margin-left: auto; font: inherit; color: var(--muted); background: none; border: 0; cursor: pointer; padding: 6px 4px;
   }
   .sound:hover { color: var(--fg); }
+  #resetBtn:not([hidden]) + .sound { margin-left: 0; } /* reset sits just left of sound */
   .sound:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
   .tabs button {
     font: inherit; color: var(--muted); background: none; border: 0; cursor: pointer;
@@ -113,6 +114,7 @@
 </div>
 <nav class="rail" aria-label="Prototypes">
   <p id="hint"></p>
+  <button type="button" class="sound" id="resetBtn" hidden>reset</button>
   <button type="button" class="sound" id="soundBtn" aria-pressed="false">sound on</button>
 </nav>
 
@@ -1725,6 +1727,14 @@
       }
       this.gather();
     },
+    // the reset button: stops whatever is going on and puts the name and links back
+    reset() {
+      if (!this.ok) return;
+      clearTimeout(this.linksT);
+      if (this.beat) this.stopBeat();
+      if (this.wg) this.wordsQuit();
+      this.showLinks();
+    },
     isLast() { return this.stage === PILE_STAGES.length - 1; },
     linkAt(p) {
       if (this.state !== "set" || this.linkShow < 1) return null;
@@ -1937,6 +1947,16 @@
         if (this.tipT > 0.4) { this.tipT = 0; this.collapse({ x: tilt.x > 0 ? -50 : W + 50, y: H / 2 }); }
       }
       if (Math.abs(tilt.x) > 0.3) this.idle = 0;
+      // the reset button waits until everything has landed after the knock-over (or 6s, if a beat keeps things bouncing),
+      // then stays while you play
+      if (this.state !== "loose") { this.settledOnce = false; this.stillT = 0; }
+      else if (!this.settledOnce) {
+        const moving = this.bodies.some((b) => !b.floater && !(b.away > 0) && !b.dance && b.speed > 0.6);
+        this.stillT = moving ? 0 : (this.stillT || 0) + dt;
+        if (this.stillT > 0.3 || performance.now() - (this.collapsedAt || 0) > 6000) this.settledOnce = true;
+      }
+      const canReset = (this.state === "loose" && this.settledOnce) || !!this.wg;
+      if (resetBtn.hidden === canReset) resetBtn.hidden = !canReset;
       for (const g of this.ghosts) { g.vy -= 90 * dt; g.x += g.vx * dt; g.y += g.vy * dt; g.r += g.vr * dt; }
       this.ghosts = this.ghosts.filter((g) => g.y > -120);
       for (const r of this.rings) r.t += dt;
@@ -2179,6 +2199,8 @@
     if (pile.hoop) { pile.hoop.game = "done"; pile.hoop.leaving = true; }
     hint.textContent = pile.hint;
   });
+  const resetBtn = document.getElementById("resetBtn");
+  resetBtn.addEventListener("click", () => { pile.reset(); resetBtn.blur(); });
   const soundBtn = document.getElementById("soundBtn");
   const paintSound = () => { soundBtn.textContent = sound.muted ? "sound off" : "sound on"; soundBtn.setAttribute("aria-pressed", String(sound.muted)); };
   paintSound();
