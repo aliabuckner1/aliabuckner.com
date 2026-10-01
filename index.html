@@ -180,7 +180,7 @@
   const DANCE_SECONDS = 30; // how long a letter dances on its own
   const MAX_DANCERS = 10;
   const MAX_EXTRAS = 70; // typed letters, emoji and popped pieces allowed on screen at once
-  const MARCH_AT = 6; // this many dancers or more march around the edge of the screen
+  const CIRCLE_MAX = 5; // most dancers in a circle on a big screen (fewer fit on a phone); any more march around the edge
   const MARCH_PX_PER_BEAT = 55; // how far the marching line moves each beat
   // -------------------------------------------------------------------------
 
@@ -1126,7 +1126,9 @@
       const avgX = order.reduce((a, b) => a + b.dance.x, 0) / n, avgY = order.reduce((a, b) => a + b.dance.y, 0) / n;
       // where a dancer stands: feet on the ground (or hovering if gravity is off), raised by extra
       const standY = (dm, scale, extra) => (floating ? avgY : groundY + up * (dm.leg + dm.h / 2) * scale) + up * extra;
-      const mode = n === 1 ? "solo" : n === 2 ? "pair" : n === 3 ? "wave" : n < MARCH_AT ? "circle" : "march";
+      // how many fit in a circle depends on the screen: about 3 on a phone, up to CIRCLE_MAX on a computer
+      const circleMax = clamp(Math.floor((W - 40) / (this.layouts[0].fs * 1.2 + 8)), 3, CIRCLE_MAX);
+      const mode = n === 1 ? "solo" : n === 2 ? "pair" : n === 3 ? "wave" : n <= circleMax ? "circle" : "march";
       // the march: everyone follows a path around the inside edge of the screen, feet always against the edge
       const marchSpacing = Math.max(...dims.map((d) => d.w + d.h * 0.6)) + 10;
       const lead = dims[0], leadP = 2 * (W - 2 * (lead.leg + lead.h / 2)) + 2 * (H - 2 * (lead.leg + lead.h / 2));
