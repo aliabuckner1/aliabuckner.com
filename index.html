@@ -537,6 +537,10 @@
     if (e.gamma == null) return;
     const ang = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
     const deg = ang === 90 ? e.beta : ang === -90 || ang === 270 ? -e.beta : ang === 180 ? -e.gamma : e.gamma;
+    // held close to upright, the sideways reading gets jumpy (it can swing wildly with tiny movements),
+    // so letters only lean when the phone is held at a comfortable angle
+    const upright = ang === 90 || ang === -90 || ang === 270 ? Math.abs(e.gamma) > 70 : Math.abs(e.beta) > 70;
+    if (upright) { tilt.target = 0; return; }
     const v = clamp(Math.sin(deg * Math.PI / 180) * 1.6, -1, 1);
     tilt.target = Math.abs(v) < 0.08 ? 0 : v;
   });
@@ -555,36 +559,10 @@
       this.word = ""; clearTimeout(this.waveT); clearTimeout(this.linksT);
       this.engine = M.Engine.create();
       this.engine.gravity.y = this.zero > 0 ? 0 : this.flip ? -1 : 1;
-      const maxW = Math.min(W - 48, 760), base = Math.min(W, H);
-      const last = PILE_STAGES.length - 1;
-      // a reference letter size for typed letters, the wave and the hoop, independent of the messages
-      this.unit = base * 0.09;
-      // the name, big, a little above the middle; the links line sits underneath it
-      this.layouts = [fit(PILE_STAGES[0], maxW, H * 0.3, base * 0.2, W / 2, H * NAME_Y)];
-      const name = this.layouts[0];
-      this.linkLayout = fit(LINKS_LINE, maxW, H * 0.2, base * 0.085, W / 2, H * NAME_Y + name.height / 2 + base * 0.14, linkFont);
-      this.linkSpeed = this.linkLayout.glyphs.map(() => 1 + Math.random() * 0.6);
-      this.linkSpin = this.linkLayout.glyphs.map(() => (Math.random() - 0.5) * 1.2);
+      this.walls = null;
+      this.measure();
       if (!keep) { this.linkShow = 1; this.linkDir = 1; }
-      // link boxes: glyphs come back in reading order, so split them by word length
-      const lg = this.linkLayout;
-      let n = 0;
-      this.links = PILE_LINKS.map((word) => {
-        const gs = lg.glyphs.slice(n, n + word.length); n += word.length;
-        const x0 = Math.min(...gs.map((g) => g.x - g.w / 2)), x1 = Math.max(...gs.map((g) => g.x + g.w / 2));
-        return { word, x0, x1, y: gs[0].y, fs: lg.fs };
-      });
-      const t = 400, o = { isStatic: true };
-      // the ceiling sits at the top edge; letters raining in pass through it until they are on screen
-      // two small gaps in it let a well-aimed letter escape and come back by parachute
-      const gw = Math.max(70, W * 0.1);
-      this.gaps = [W * 0.27, W * 0.73].map((x) => ({ x0: x - gw / 2, x1: x + gw / 2 }));
-      const e = [-t, this.gaps[0].x0, this.gaps[0].x1, this.gaps[1].x0, this.gaps[1].x1, W + t];
-      this.ceil = [0, 2, 4].map((i) => M.Bodies.rectangle((e[i] + e[i + 1]) / 2, -t / 2, e[i + 1] - e[i], t, { isStatic: true, collisionFilter: { category: 2 } }));
-      // plugs fill the gaps whenever gravity is flipped or off, so nothing escapes upward
-      this.plugs = this.gaps.map((g) => M.Bodies.rectangle((g.x0 + g.x1) / 2, -t / 2, g.x1 - g.x0, t, { isStatic: true, collisionFilter: { category: 0 } }));
       this.bodies = this.make(this.stage, false);
-      const sides = [M.Bodies.rectangle(-t / 2, 0, t, H * 4, o), M.Bodies.rectangle(W + t / 2, 0, t, H * 4, o)];
       M.Events.on(this.engine, "collisionStart", (e) => {
         for (const pair of e.pairs) {
           const a = pair.bodyA.parent, b = pair.bodyB.parent;
@@ -608,15 +586,9 @@
           }
         }
       });
-      M.Composite.add(this.engine.world, [
-        ...this.bodies,
-        M.Bodies.rectangle(W / 2, H + t / 2, W + t * 2, t, { isStatic: true, collisionFilter: { category: 4 } }),
-        ...this.ceil,
-        ...this.plugs,
-        ...sides,
-      ]);
+      M.Composite.add(this.engine.world, this.bodies);
+      this.buildWalls();
       this.loaded = this.stage; this.ghosts = [];
-      this.setPlugs();
       this.state = "set"; this.drag = null; this.press = null; this.p = { x: 0, y: 0 };
       this.hoop = null; this.throws = 0; this.throwsNeeded = randInt(...HOOP_FIRST_THROWS); hoopCard.hidden = true;
       this.beat = null; this.thumps = []; this.rings = [];
@@ -625,6 +597,86 @@
       this.slowmo = null; this.spelled = null; this.spellKey = ""; this.spellHold = 0; this.peek = null;
       if (cur === this) hint.textContent = this.hint;
       this.hold = 0; this.held = false; this.idle = 0;
+    },
+    // lays out the name and the links line for the current screen size (on start, and again on every resize)
+    measure() {
+      const maxW = Math.min(W - 48, 760), base = Math.min(W, H);
+      // a reference letter size for typed letters, the wave and the hoop, independent of the messages
+      this.unit = base * 0.09;
+      // the name, big, a little above the middle; the links line sits underneath it
+      this.layouts = [fit(PILE_STAGES[0], maxW, H * 0.3, base * 0.2, W / 2, H * NAME_Y)];
+      const name = this.layouts[0];
+      this.linkLayout = fit(LINKS_LINE, maxW, H * 0.2, base * 0.085, W / 2, H * NAME_Y + name.height / 2 + base * 0.14, linkFont);
+      this.linkSpeed = this.linkLayout.glyphs.map(() => 1 + Math.random() * 0.6);
+      this.linkSpin = this.linkLayout.glyphs.map(() => (Math.random() - 0.5) * 1.2);
+      // link boxes: glyphs come back in reading order, so split them by word length
+      const lg = this.linkLayout;
+      let n = 0;
+      this.links = PILE_LINKS.map((word) => {
+        const gs = lg.glyphs.slice(n, n + word.length); n += word.length;
+        const x0 = Math.min(...gs.map((g) => g.x - g.w / 2)), x1 = Math.max(...gs.map((g) => g.x + g.w / 2));
+        return { word, x0, x1, y: gs[0].y, fs: lg.fs };
+      });
+    },
+    // the window changed size while the letters are loose: rather than starting over, the room reshapes around them.
+    // The walls follow the edges, everything keeps its place relative to the window (spreading out or squeezing
+    // together, and gravity does the rest), and letters scale with the name so they still fit and still reassemble.
+    relayout(oW, oH) {
+      const M = window.Matter, oldFs = this.layouts[0].fs;
+      this.idle = 0; // resizing counts as playing, so the name doesn't put itself back mid-drag
+      this.measure();
+      const l = this.layouts[0], k = l.fs / oldFs, sx = W / oW, sy = H / oH;
+      const shelved = this.wg ? this.wg.shelf : [];
+      for (const b of [...this.bodies, ...shelved]) {
+        if (k !== 1) { M.Body.scale(b, k, k); b.fs *= k; }
+        M.Body.setPosition(b, { x: b.position.x * sx, y: b.position.y * sy });
+        if (b.awayX !== undefined) b.awayX *= sx;
+        const d = b.dance;
+        if (d) { d.x *= sx; d.y *= sy; d.px *= sx; d.py *= sy; }
+        // where it goes when the name reassembles
+        if (b.hx !== undefined && this.layouts[b.stage]) {
+          const g = this.layouts[b.stage].glyphs[b.gi], ink = inkOf(b.ch), fs = this.layouts[b.stage].fs;
+          b.hx = g.x + ink.ox * fs / 100; b.hy = g.y + ink.oy * fs / 100;
+        }
+      }
+      for (const g of this.ghosts) { g.x *= sx; g.y *= sy; g.fs *= k; }
+      for (const r of this.rings) { r.x *= sx; r.y *= sy; }
+      if (this.spelled) { this.spelled.x *= sx; this.spelled.y *= sy; }
+      if (this.beat) for (const L of Object.values(this.beat.layers)) if (L) { L.x *= sx; L.y *= sy; }
+      // the hoop and the word-game shelf move to their places on the new screen
+      if (this.hoop) {
+        const h = this.hoop;
+        h.rimW = clamp(this.unit * 2.6, 72, 130); h.cx = W - 16 - h.rimW * 0.8; h.y = H * 0.42; h.r3 = Math.max(h.rimW * 3, W * 0.42);
+      }
+      if (this.wg) {
+        const g = this.wg;
+        g.slotW = Math.min(this.unit * 1.5, (W * 0.86) / SHELF_SLOTS); g.x0 = W / 2 - (g.slotW * SHELF_SLOTS) / 2; g.y = Math.max(H * 0.2, g.slotW * 1.6);
+      }
+      this.buildWalls();
+      // anything a shrinking window left outside the walls is brought back in
+      for (const b of this.bodies) {
+        if (b.away > 0 || b.floater || b.entering) continue;
+        const r = b.fs * 0.4, x = clamp(b.position.x, r, W - r), y = clamp(b.position.y, r, H - r);
+        if (x !== b.position.x || y !== b.position.y) M.Body.setPosition(b, { x, y });
+      }
+    },
+    // the floor, side walls and ceiling (with its two escape gaps) for the current screen size; rebuilt on resize
+    buildWalls() {
+      const M = window.Matter, t = 400, o = { isStatic: true };
+      if (this.walls) M.Composite.remove(this.engine.world, this.walls);
+      // the ceiling sits at the top edge; letters raining in pass through it until they are on screen
+      // two small gaps in it let a well-aimed letter escape and come back by parachute
+      const gw = Math.max(70, W * 0.1);
+      this.gaps = [W * 0.27, W * 0.73].map((x) => ({ x0: x - gw / 2, x1: x + gw / 2 }));
+      const e = [-t, this.gaps[0].x0, this.gaps[0].x1, this.gaps[1].x0, this.gaps[1].x1, W + t];
+      this.ceil = [0, 2, 4].map((i) => M.Bodies.rectangle((e[i] + e[i + 1]) / 2, -t / 2, e[i + 1] - e[i], t, { isStatic: true, collisionFilter: { category: 2 } }));
+      // plugs fill the gaps whenever gravity is flipped or off, so nothing escapes upward
+      this.plugs = this.gaps.map((g) => M.Bodies.rectangle((g.x0 + g.x1) / 2, -t / 2, g.x1 - g.x0, t, { isStatic: true, collisionFilter: { category: 0 } }));
+      const sides = [M.Bodies.rectangle(-t / 2, 0, t, H * 4, o), M.Bodies.rectangle(W + t / 2, 0, t, H * 4, o)];
+      const floor = M.Bodies.rectangle(W / 2, H + t / 2, W + t * 2, t, { isStatic: true, collisionFilter: { category: 4 } });
+      this.walls = [floor, ...this.ceil, ...this.plugs, ...sides];
+      M.Composite.add(this.engine.world, this.walls);
+      this.setPlugs();
     },
     // each letter's physics shape is its own ink box: "i" is tall and thin and topples, "m" is wide,
     // "o" is a circle and rolls, "." is a tiny marble. Corners are rounded so they tumble rather than snag.
@@ -640,12 +692,12 @@
     },
     make(stage, rain) {
       const M = window.Matter, l = this.layouts[stage];
-      return l.glyphs.map((g) => {
+      return l.glyphs.map((g, gi) => {
         const k = inkOf(g.ch), hx = g.x + k.ox * l.fs / 100, hy = g.y + k.oy * l.fs / 100;
         const x = rain ? 30 + Math.random() * (W - 60) : hx;
         const y = !rain ? hy : this.flip ? H * 0.55 + Math.random() * H * 0.4 : -30 - Math.random() * H * 0.9;
         const b = this.letterBody(g.ch, l.fs, x, y);
-        b.hx = hx; b.hy = hy; b.stage = stage;
+        b.hx = hx; b.hy = hy; b.stage = stage; b.gi = gi;
         if (rain && !this.flip) { b.entering = true; b.collisionFilter.mask = 0xffff & ~2; }
         if (rain && this.zero > 0) M.Body.setVelocity(b, { x: (Math.random() - 0.5), y: 3 + Math.random() * 4 });
         return b;
@@ -1941,11 +1993,6 @@
       if (!this.ok) return;
       const M = window.Matter;
       this.engine.gravity.x = tilt.x * (this.zero > 0 ? 0.5 : 1);
-      // tip the phone hard while the sentence is standing and it topples over
-      if (this.state === "set") {
-        this.tipT = Math.abs(tilt.x) > 0.55 ? (this.tipT || 0) + dt : 0;
-        if (this.tipT > 0.4) { this.tipT = 0; this.collapse({ x: tilt.x > 0 ? -50 : W + 50, y: H / 2 }); }
-      }
       if (Math.abs(tilt.x) > 0.3) this.idle = 0;
       // the reset button waits until everything has landed after the knock-over (or 6s, if a beat keeps things bouncing),
       // then stays while you play
@@ -2222,11 +2269,22 @@
   tabs.forEach((b) => b.addEventListener("click", () => show(b.dataset.k)));
 
   const resize = () => {
-    const r = stage.getBoundingClientRect();
+    const r = stage.getBoundingClientRect(), oW = W, oH = H;
+    const loose = cur && cur.ok && cur.relayout && cur.state !== "set" && oW > 0 && oH > 0;
+    // a page squeezed to nothing (a hidden tab or pane) leaves the letters alone until it comes back
+    if (loose && (r.width < 120 || r.height < 120)) return;
     DPR = Math.min(window.devicePixelRatio || 1, 2);
     W = Math.max(r.width, 50); H = Math.max(r.height, 50);
-    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
-    if (cur) cur.init(true);
+    const cw = Math.round(W * DPR), ch = Math.round(H * DPR);
+    if (cv.width === cw && cv.height === ch && W === oW && H === oH) return;
+    cv.width = cw; cv.height = ch; // (this wipes the canvas)
+    if (!cur) return;
+    // while the letters are loose the room reshapes around them; a standing name just lays itself out again
+    if (loose) cur.relayout(oW, oH); else cur.init(true);
+    // redraw straight away, so the screen never shows the wiped, empty canvas between frames
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    cur.draw();
   };
 
   const ptr = { down: false, x: 0, y: 0, sx: 0, sy: 0, moved: false, t: 0 };
