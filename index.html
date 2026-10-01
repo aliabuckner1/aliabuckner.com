@@ -1,0 +1,2275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Alia Buckner: resume, email and LinkedIn. Poke the letters.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://aliabuckner.com/">
+<meta property="og:title" content="Alia Buckner">
+<meta property="og:description" content="Resume, email and LinkedIn. Poke the letters.">
+<meta property="og:image" content="https://aliabuckner.com/preview.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f2a33">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f2a33'/%3E%3Ctext x='32' y='47' font-family='Helvetica,Arial,sans-serif' font-weight='700' font-size='44' text-anchor='middle' fill='%23e8497a'%3Ea%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Alia Buckner</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=DM+Mono&display=swap">
+<style>
+  /* layout: one full-height stage that is the toy, with a slim switcher rail underneath */
+  :root {
+    --bg: #e9f1f4; --fg: #0f2a33; --muted: #557078; --line: #c5d5da;
+    --pink: #e8497a; --sun: #f2b705; --sea: #4fa9bd; --foam: #ffffff;
+    --display: "Bricolage Grotesque", system-ui, sans-serif;
+    --mono: "DM Mono", ui-monospace, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d1f26; --fg: #e6f1f2; --muted: #8fa9b0; --line: #24404a;
+      --pink: #ff6f9c; --sun: #ffd04a; --sea: #2c7f93; --foam: #eaf7fa; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1f26; --fg: #e6f1f2; --muted: #8fa9b0; --line: #24404a;
+    --pink: #ff6f9c; --sun: #ffd04a; --sea: #2c7f93; --foam: #eaf7fa; color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  html { color-scheme: light; }
+  @media (prefers-color-scheme: dark) { html { color-scheme: dark; } }
+  :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); box-sizing: border-box; }
+  body { margin: 0; -webkit-text-size-adjust: 100%; }
+  [hidden] { display: none !important; }
+  body {
+    background: var(--bg); color: var(--fg);
+    display: flex; flex-direction: column; overflow: hidden;
+    font-family: var(--mono); font-size: 13px;
+  }
+  #stage { flex: 1; min-height: 0; position: relative; }
+  #cv {
+    position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab;
+    -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+  }
+  .rail {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 24px;
+    padding-block: 10px; padding-inline: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+  .sound {
+    order: 2; margin-left: auto; font: inherit; color: var(--muted); background: none; border: 0; cursor: pointer; padding: 6px 4px;
+  }
+  .sound:hover { color: var(--fg); }
+  .sound:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
+  .tabs button {
+    font: inherit; color: var(--muted); background: none; border: 0; cursor: pointer;
+    padding: 6px 10px; border-bottom: 2px solid transparent;
+  }
+  .tabs button:hover { color: var(--fg); }
+  .tabs button[aria-pressed="true"] { color: var(--fg); border-bottom-color: var(--pink); }
+  .tabs button:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
+  /* the hint never changes the bar's height, so new hint text can't resize (and reset) the toy */
+  #hint {
+    order: 1; flex: 1 1 14rem; min-width: 0; margin: 0; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  @media (max-width: 700px) {
+    #hint { order: 3; flex-basis: 100%; white-space: normal; height: 2.8em; line-height: 1.4; }
+  }
+  .hoop-card {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    min-width: 200px; max-width: calc(100% - 32px); padding-block: 20px; padding-inline: 28px;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25); text-align: center;
+  }
+  .hoop-card[hidden] { display: none; }
+  .hoop-score { margin: 0; font-family: var(--display); font-size: 64px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .hoop-sub, .hoop-best { margin: 0; color: var(--muted); }
+  .hoop-best.is-new { color: var(--pink); }
+  .hoop-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .hoop-actions button {
+    font: inherit; color: var(--fg); background: none; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 4px; padding: 6px 12px;
+  }
+  .hoop-actions button.primary { background: var(--pink); border-color: var(--pink); color: var(--bg); }
+  .hoop-actions button:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="cv" aria-label="Interactive bio toy"></canvas>
+  <section class="hoop-card" id="hoopCard" role="dialog" aria-labelledby="hoopScore" hidden>
+    <p class="hoop-score" id="hoopScore">0</p>
+    <p class="hoop-sub" id="hoopSub">points in 20 seconds</p>
+    <p class="hoop-best" id="hoopBest"></p>
+    <div class="hoop-actions">
+      <button type="button" class="primary" id="hoopAgain">play again</button>
+      <button type="button" id="hoopDone">done</button>
+    </div>
+  </section>
+</div>
+<nav class="rail" aria-label="Prototypes">
+  <p id="hint"></p>
+  <button type="button" class="sound" id="soundBtn" aria-pressed="false">sound on</button>
+</nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script>
+(() => {
+  // ---- the only things to edit -------------------------------------------
+  // each poke-and-reassemble swaps the message for the next one
+  const PILE_STAGES = ["alia buckner"]; // the letters you play with
+  const LINKS_LINE = "resume   email   linkedin"; // shown under the name; floats away while you play
+  const NAME_Y = 0.27; // where the name sits, as a fraction of the screen height
+  // knocking the name over plays in slow motion: this speed for SLOW_HOLD seconds, then easing back to normal over SLOW_RAMP
+  const SLOW_SCALE = 0.3, SLOW_HOLD = 2.2, SLOW_RAMP = 1.5;
+  // letters falling back to the floor when DJ mode starts, and after the drop's upside-down bars
+  const FALL_SLOWMO = { scale: 0.45, hold: 1.2, ramp: 1.2 };
+  const PILE_LINKS = ["resume", "email", "linkedin"]; // the words of the last stage, each a link
+  // where each link goes. Fill these in: a resume URL, "mailto:you@example.com", a LinkedIn profile URL
+  const PILE_URLS = { resume: "resume.pdf", email: "mailto:aliabuckner@gmail.com", linkedin: "https://www.linkedin.com/in/aliabuckner/" };
+  const PILE_SELF_FIX = 15; // seconds of no touching before the pile reassembles itself
+  const PILE_FIRST_FIX = 5; // ...but when a new message is waiting to be revealed (the links), it only waits this long
+  const POP_TAPS = 9; // taps on one letter before it pops
+  const POP_MAX_SIZE = 8; // how many times its size it has swollen to on the tap before it pops
+  // type one of these words and its emoji floats down a beat after the last letter
+  const WORD_EMOJI = {
+    hi: "\u{1F44B}", hey: "\u{1F44B}", hello: "\u{1F44B}",
+    alia: "\u{1F451}",
+  };
+  const GRAVITY_MODES = ["gravity: normal", "gravity: upside down", "gravity: off"]; // press and hold cycles through these
+  const PARACHUTE_DRAG = 0.18; // higher is a slower, floatier parachute descent
+  const HOOP_FIRST_THROWS = [8, 13]; // the hoop first rises after a random number of throws in this range
+  const HOOP_AGAIN_THROWS = [20, 30]; // once it has gone, it takes this many more throws to come back
+  const HOOP_WORDS = ["hoop", "ball"]; // typing one of these summons the hoop
+  const HOOP_SECONDS = 20; // length of a basketball round
+  const MAX_ROUNDS = 3; // rounds per appearance of a game; after that it's "done" until the game comes back
+  const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const SCORE_TEXT_SECONDS = 2.2; // how long "+2", "3-pointer" and "no dunks" stay up
+  const BEAT_AFTER_THUMPS = 6; // double-tap thumps in a row before the page picks up the rhythm and keeps drumming
+  const BEAT_MAX_GAP = 1.2; // seconds allowed between those thumps
+  // the word game: type "words" to bring out the shelf
+  const WORD_GAME_SECONDS = 60;
+  const WORD_POINTS = [0, 0, 0, 1, 2, 4, 7, 10, 15, 15]; // by word length
+  const SHELF_SLOTS = 9;
+  const SPELL_MIN = 3; // letters lined up on the floor spelling a word at least this long start the word game
+  const SPELL_COOLDOWN = 120; // seconds before an accidental word can start the game again after you close it
+  // after this much active play, a little "words?" tab peeks down from the top; click it to start the game
+  const PEEK_AFTER = 45, PEEK_STAY = 8, PEEK_AGAIN = 120;
+  // every everyday English word (common words, film-subtitle vocabulary, and their real plurals and -ed/-er forms,
+  // all checked against the Scrabble dictionary) that can be made from the letters of "alia buckner"
+  const WORDS = new Set("ace air ale arc are ark ban bar bin bra bun cab can car cub cue cur ear elk era ice ilk ink ire kin lab lie nab nib nil ran rib rub rue run urn able acne acre akin area aria aura back bail bake bale bane bank bare bark barn beak bean bear beau beck bike bile blue blur bran brie buck bulk bunk burn cake cane care clan club clue crab crib cube curb cure curl earl earn kale kiln lace lack lain lair lake lane lark leak lean liar lice lick lien lieu like line link lira lube luck lure lurk nail narc near neck nice nick nuke race rack rail rain rake rank real rein rice rick rile rink rube ruin rule rune ulna aback alien alike ankle arena baker banal biker black blank blare bleak blink bluer brace brain brake break brick brine brink cabal cabin cable canal clank clean clear clerk clink clunk crane crank creak cruel incur lance learn liner lunar nicer relic renal ulcer uncle urban urine aerial arcane backer banker bicker buckle bunker burial carnal eclair lancer linear nebula neural nickel nuclei racial unable unlike unreal urinal balance blacker blinker bracken buckler caliber calibre clinker clunker cranial luckier nuclear unclear balancer barnacle incurable".split(" "));
+  const DROP_FREEZE = 0.4; // seconds of silence, everything frozen, between letting go and the boom
+  // in DJ mode the hint bar cycles through what you can do
+  const DJ_HINTS = [
+    "double-tap high, mid or low to add drums",
+    "tap letters to play notes",
+    "hold a letter still to make it dance",
+    "hold empty space for 3 seconds to drop the beat",
+  ];
+  const DROP_SECTION_BARS = 8; // how long the colourful section after a drop lasts
+  const DROP_MIN_HOLD = 3; // the drop only happens if you hold at least this long; letting go sooner calls it off
+  const BUILD_SECONDS = 4; // holding during the beat reaches a full build-up after this long
+  const DANCE_HOLD = 0.8; // seconds to hold a letter before it starts dancing
+  const DANCE_DRIFT = 25; // how far (px) the pointer can wander during that hold
+  const DANCE_SECONDS = 30; // how long a letter dances on its own
+  const MAX_DANCERS = 10;
+  const MAX_EXTRAS = 70; // typed letters, emoji and popped pieces allowed on screen at once
+  const MARCH_AT = 6; // this many dancers or more march around the edge of the screen
+  const MARCH_PX_PER_BEAT = 55; // how far the marching line moves each beat
+  // -------------------------------------------------------------------------
+
+  const cv = document.getElementById("cv");
+  const ctx = cv.getContext("2d");
+  const stage = document.getElementById("stage");
+  const hint = document.getElementById("hint");
+  let W = 0, H = 0, DPR = 1;
+  const C = {};
+  const readColors = () => {
+    const s = getComputedStyle(document.documentElement);
+    for (const k of ["bg", "fg", "muted", "line", "pink", "sun", "sea", "foam"]) {
+      C[k] = s.getPropertyValue("--" + k).trim();
+    }
+  };
+  const font = (px) => `700 ${px}px "Bricolage Grotesque", system-ui, sans-serif`;
+  const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+  const ease = (t) => t * t * (3 - 2 * t);
+
+  // Wraps text and returns one entry per visible letter, centred on (cx, cy).
+  const layout = (text, maxW, fs, cx, cy) => {
+    ctx.font = font(fs);
+    const lines = [];
+    let cur = "";
+    let fits = true;
+    for (const word of text.split(" ")) {
+      if (ctx.measureText(word).width > maxW) fits = false;
+      const next = cur ? cur + " " + word : word;
+      if (cur && ctx.measureText(next).width > maxW) { lines.push(cur); cur = word; } else cur = next;
+    }
+    if (cur) lines.push(cur);
+    const lh = fs * 1.15;
+    const height = lines.length * lh;
+    const glyphs = [];
+    lines.forEach((line, li) => {
+      const lw = ctx.measureText(line).width;
+      const y = cy - height / 2 + lh * (li + 0.5);
+      for (let i = 0; i < line.length; i++) {
+        if (line[i] === " ") continue;
+        const w = ctx.measureText(line[i]).width;
+        glyphs.push({ ch: line[i], x: cx - lw / 2 + ctx.measureText(line.slice(0, i)).width + w / 2, y, w });
+      }
+    });
+    return { glyphs, height, fits, fs, lines: lines.length };
+  };
+  const fit = (text, maxW, maxH, fs, cx, cy) => {
+    let l = layout(text, maxW, fs, cx, cy);
+    while ((l.height > maxH || !l.fits) && fs > 9) { fs *= 0.93; l = layout(text, maxW, fs, cx, cy); }
+    // balance the lines so a single word is never left alone on the last one
+    let w = maxW;
+    while (l.lines > 1 && w > maxW * 0.5) {
+      const t = layout(text, w * 0.95, fs, cx, cy);
+      if (t.lines !== l.lines || !t.fits) break;
+      l = t; w *= 0.95;
+    }
+    return l;
+  };
+  // ox/oy shift the glyph so its ink, not its type box, sits on (x, y); the physics bodies are centred on the ink
+  const drawGlyph = (ch, x, y, rot, fs, color, ox = 0, oy = 0) => {
+    ctx.save();
+    ctx.translate(x, y);
+    if (rot) ctx.rotate(rot);
+    ctx.font = font(fs);
+    ctx.fillStyle = color;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(ch, -ox, -oy);
+    ctx.restore();
+  };
+
+  // the ink box of each character at 100px, measured once: its size and how far its centre sits from the type centre
+  const inkCache = new Map();
+  const inkOf = (ch) => {
+    if (!inkCache.has(ch)) {
+      ctx.save();
+      ctx.font = font(100); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      const m = ctx.measureText(ch);
+      const L = m.actualBoundingBoxLeft || 0, R = m.actualBoundingBoxRight || m.width / 2;
+      const A = m.actualBoundingBoxAscent || 35, D = m.actualBoundingBoxDescent || 35;
+      ctx.restore();
+      inkCache.set(ch, { ox: (R - L) / 2, oy: (D - A) / 2, w: L + R, h: A + D });
+    }
+    return inkCache.get(ch);
+  };
+  const ROUND = new Set(["o", "0", "."]);
+
+  // ---- sound: everything is synthesised, nothing to load; it starts on the first tap or key.
+  // Each knock is panned to where it happened and sent through a little room echo.
+  const sound = {
+    ac: null, out: null, send: null, noise: null, last: 0,
+    muted: (() => { try { return localStorage.getItem("bio-toys-muted") === "1"; } catch (e) { return false; } })(),
+    unlock() {
+      if (!this.ac) {
+        try {
+          const ac = new (window.AudioContext || window.webkitAudioContext)();
+          const comp = ac.createDynamicsCompressor();
+          comp.threshold.value = -18; comp.ratio.value = 4;
+          comp.connect(ac.destination);
+          this.out = ac.createGain(); this.out.gain.value = 0.7; this.out.connect(comp);
+          // a short generated room: decaying stereo noise as the reverb impulse
+          const len = Math.floor(ac.sampleRate * 1.4), imp = ac.createBuffer(2, len, ac.sampleRate);
+          for (let c = 0; c < 2; c++) {
+            const d = imp.getChannelData(c);
+            for (let k = 0; k < len; k++) d[k] = (Math.random() * 2 - 1) * Math.pow(1 - k / len, 3.5);
+          }
+          const verb = ac.createConvolver(); verb.buffer = imp;
+          this.send = ac.createGain(); this.send.gain.value = 0.2;
+          this.send.connect(verb).connect(this.out);
+          const nb = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), nd = nb.getChannelData(0);
+          for (let k = 0; k < nd.length; k++) nd[k] = Math.random() * 2 - 1;
+          this.noise = nb;
+          // a tempo-synced echo for the DJ synth: a delay feeding back into itself, darkened a little each repeat
+          this.echo = ac.createDelay(2);
+          const fb = ac.createGain(), tone = ac.createBiquadFilter(), wet = ac.createGain();
+          fb.gain.value = 0.38; tone.type = "lowpass"; tone.frequency.value = 2200; wet.gain.value = 0.35;
+          this.echo.connect(tone); tone.connect(fb); fb.connect(this.echo); tone.connect(wet); wet.connect(this.out);
+          this.ac = ac;
+        } catch (e) { this.ac = null; }
+      }
+      if (this.ac && this.ac.state === "suspended") this.ac.resume().catch(() => {});
+    },
+    ready() { return !this.muted && this.ac && this.ac.state === "running"; },
+    // a destination panned left or right by screen position, feeding both the dry mix and the room
+    voice(x, dry = false) {
+      const ac = this.ac, g = ac.createGain();
+      let node = g;
+      if (ac.createStereoPanner) {
+        const p = ac.createStereoPanner();
+        p.pan.value = clamp(((x ?? W / 2) / W) * 2 - 1, -1, 1) * 0.7;
+        g.connect(p); node = p;
+      }
+      node.connect(this.out);
+      if (!dry) node.connect(this.send);
+      return g;
+    },
+    osc(dest, type, f0, f1, at, dur, vol, attack = 0.002) {
+      if (f0 > 16000) return; // overtones of very high notes would be inaudible anyway
+      const ac = this.ac, t = ac.currentTime + at, o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.setValueAtTime(f0, t);
+      if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + Math.min(dur, 0.08));
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(vol, 0.0002), t + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(dest); o.start(t); o.stop(t + dur + 0.03);
+    },
+    hiss(dest, type, f0, f1, q, at, dur, vol) {
+      const ac = this.ac, t = ac.currentTime + at, src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      src.buffer = this.noise; src.loopStart = Math.random() * 0.5;
+      f.type = type; f.Q.value = q; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(f).connect(g).connect(dest); src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.02);
+    },
+    // one knock: vol 0..1 from how hard it hit, size is the letter's font size (bigger knocks lower), x pans it.
+    // opts.step plays a fixed note on a rising scale (the swell boops); opts.pitch shifts the whole knock;
+    // the knock is a mechanical-keyboard thock; opts.set "chimes" plays a kalimba note instead (used for the swell)
+    hit(vol, size, x, opts = {}) {
+      if (!this.ready()) return;
+      const set = opts.set || "keyboard";
+      const now = this.ac.currentTime, gap = set === "chimes" ? 0.07 : 0.025;
+      if (now - this.last < gap) return;
+      this.last = now;
+      const SCALE = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
+      const stepped = opts.step !== undefined;
+      const pm = (opts.pitch || 1) * (stepped ? Math.pow(2, SCALE[clamp(opts.step, 0, SCALE.length - 1)] / 12) : 1);
+      const d = this.voice(x), v = 0.06 + 0.94 * vol, sz = clamp(size / 60, 0.3, 2.5);
+      switch (set) {
+        case "keyboard": {
+          const f = clamp(200 / Math.pow(sz, 0.3), 110, 260) * pm;
+          this.osc(d, "sine", f, f * 0.65, 0, 0.08, 0.5 * v);
+          this.hiss(d, "lowpass", 1900 * Math.sqrt(pm), 800 * Math.sqrt(pm), 0.7, 0, 0.04, 0.4 * v);
+          this.hiss(d, "bandpass", 5200, 4800, 0.8, 0, 0.007, 0.18 * v);
+          break;
+        }
+        case "chimes": {
+          // a kalimba tine on a pentatonic scale, so any mix of notes sounds pleasant
+          const notes = [0, 2, 4, 7, 9], oct = sz > 1.3 ? -1 : sz < 0.6 ? 1 : 0;
+          const f = opts.freq || (stepped ? 392 * pm : 392 * Math.pow(2, (notes[Math.floor(Math.random() * 5)] + 12 * oct) / 12) * pm);
+          this.osc(d, "sine", f, f, 0, 0.7, 0.24 * v, 0.003);
+          this.osc(d, "sine", f * 5.95, f * 5.95, 0, 0.07, 0.05 * v);
+          break;
+        }
+      }
+    },
+    clang(vol, x) {
+      if (!this.ready()) return;
+      const d = this.voice(x);
+      this.osc(d, "sine", 820, 815, 0, 0.45, 0.12 * vol);
+      this.osc(d, "sine", 1235, 1230, 0, 0.32, 0.07 * vol);
+      this.osc(d, "sine", 2030, 2025, 0, 0.18, 0.04 * vol);
+    },
+    swish(x) { if (this.ready()) this.hiss(this.voice(x), "bandpass", 2400, 500, 1.5, 0, 0.42, 0.35); },
+    // a kalimba note at an exact pitch (letters played during the beat)
+    // the DJ synth: a pluck of two detuned saws through a filter that snaps from bright to dark, a sine sub
+    // underneath, and an echo on the dotted eighth (echo = seconds) so notes leave a rhythmic trail
+    synth(freq, x, vol = 0.6, echo = 0.3) {
+      if (!this.ready()) return;
+      const ac = this.ac, t = ac.currentTime, f = freq / 2;
+      const lp = ac.createBiquadFilter(), g = ac.createGain(), sub = ac.createOscillator(), sg = ac.createGain();
+      lp.type = "lowpass"; lp.Q.value = 7;
+      lp.frequency.setValueAtTime(Math.min(f * 12, 6000), t); lp.frequency.exponentialRampToValueAtTime(Math.max(f * 1.5, 200), t + 0.28);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.2 * vol, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+      for (const detune of [-9, 9]) {
+        const o = ac.createOscillator();
+        o.type = "sawtooth"; o.frequency.value = f; o.detune.value = detune;
+        o.connect(lp); o.start(t); o.stop(t + 0.5);
+      }
+      sub.frequency.value = f / 2; sg.gain.value = 0.6;
+      sub.connect(sg).connect(lp); sub.start(t); sub.stop(t + 0.5);
+      lp.connect(g);
+      g.connect(this.voice(x, true));
+      this.echo.delayTime.setValueAtTime(clamp(echo, 0.05, 1.9), t);
+      g.connect(this.echo);
+    },
+    // a chord stab on the synth, for the pop in DJ mode
+    stab(x, echo) {
+      if (!this.ready()) return;
+      this.last = -1; this.hit(0.9, 140, x, { pitch: 0.75 });
+      for (const f of [392, 494, 587, 784]) this.synth(f, x, 0.5, echo);
+    },
+    note(freq, x, vol = 0.65) { if (this.ready()) { this.last = -1; this.hit(vol, 45, x, { set: "chimes", freq }); } },
+    // swelling a letter: a keyboard thock layered
+    // with a kalimba note, one step higher up the scale per tap
+    blip(n, x) {
+      if (!this.ready()) return;
+      this.last = -1; this.hit(0.5, 45, x, { step: n - 1, set: "keyboard" });
+      this.last = -1; this.hit(0.5, 45, x, { step: n - 1, set: "chimes" });
+    },
+    // the pop: the swell's climb resolves. A keyboard thock for the burst, a bright chord an octave up,
+    // then a quick sparkle of high notes tumbling down as the pieces fly off
+    pop(x) {
+      if (!this.ready()) return;
+      const cx = x ?? W / 2;
+      this.hiss(this.voice(cx), "bandpass", 1600, 700, 1, 0, 0.04, 0.14);
+      this.last = -1; this.hit(0.9, 140, cx, { pitch: 0.75 });
+      for (const step of [5, 7, 8]) { this.last = -1; this.hit(0.75, 45, cx, { step, set: "chimes" }); }
+      [10, 9, 8, 7].forEach((step, k) => setTimeout(() => {
+        this.last = -1; this.hit(0.4, 45, cx + (Math.random() - 0.5) * W * 0.3, { step, set: "chimes" });
+      }, 110 + k * 70));
+    },
+    // a pitch sweep over the whole duration (osc only bends during the attack)
+    sweep(dest, type, f0, f1, dur, vol, at = 0) {
+      const ac = this.ac, t = ac.currentTime + at, o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+      g.gain.setValueAtTime(vol, t + dur * 0.6); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(dest); o.start(t); o.stop(t + dur + 0.03);
+    },
+    chime(dest, f, at, vol, dur = 0.5) {
+      this.osc(dest, "sine", f, f, at, dur, vol, 0.004);
+      this.osc(dest, "sine", f * 2, f * 2, at, dur * 0.4, vol * 0.25, 0.004);
+    },
+    // ---- one sound per thing you do ----
+    tumble(x) {
+      // knocking the sentence over: a soft low thud and a quick run of knocks spreading out from your poke
+      if (!this.ready()) return;
+      this.osc(this.voice(x), "sine", 120, 60, 0, 0.14, 0.22);
+      for (let k = 0; k < 5; k++) {
+        setTimeout(() => { this.last = -1; this.hit(0.7 - k * 0.12, 30 + Math.random() * 40, (x ?? W / 2) + (Math.random() - 0.5) * W * 0.5); }, 30 + k * 45);
+      }
+    },
+    // a soft breath of air: low, broad and swelling in, with no room echo (a narrow resonant sweep sounds tinny)
+    whoosh(speed, x) {
+      if (!this.ready()) return;
+      const v = clamp((speed - 6) / 14, 0.15, 1), ac = this.ac, t = ac.currentTime, dur = 0.22 + 0.12 * v;
+      const src = ac.createBufferSource(), bp = ac.createBiquadFilter(), lp = ac.createBiquadFilter(), g = ac.createGain();
+      src.buffer = this.noise;
+      bp.type = "bandpass"; bp.Q.value = 0.5;
+      bp.frequency.setValueAtTime(320, t); bp.frequency.exponentialRampToValueAtTime(900, t + dur * 0.6); bp.frequency.exponentialRampToValueAtTime(500, t + dur);
+      lp.type = "lowpass"; lp.frequency.value = 1800;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.08 + 0.14 * v, t + dur * 0.35); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(bp).connect(lp).connect(g).connect(this.voice(x, true));
+      src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.02);
+    },
+    // the build-up: a noise sweep and a rising saw that climb for BUILD_SECONDS; returns a handle to cut it off
+    riser() {
+      if (!this.ready()) return null;
+      const ac = this.ac, t = ac.currentTime, T = BUILD_SECONDS, out = ac.createGain();
+      out.gain.setValueAtTime(0.0001, t); out.gain.exponentialRampToValueAtTime(1, t + T);
+      out.connect(this.voice(W / 2));
+      const src = ac.createBufferSource(), bp = ac.createBiquadFilter(), ng = ac.createGain();
+      src.buffer = this.noise; src.loop = true; bp.type = "bandpass"; bp.Q.value = 2;
+      bp.frequency.setValueAtTime(400, t); bp.frequency.exponentialRampToValueAtTime(8000, t + T); ng.gain.value = 0.25;
+      src.connect(bp).connect(ng).connect(out); src.start(t);
+      const o = ac.createOscillator(), lp = ac.createBiquadFilter(), og = ac.createGain();
+      o.type = "sawtooth"; o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(880, t + T);
+      lp.type = "lowpass"; lp.frequency.value = 2400; og.gain.value = 0.08;
+      o.connect(lp).connect(og).connect(out); o.start(t);
+      return { stop: () => {
+        const n = ac.currentTime;
+        out.gain.cancelScheduledValues(n); out.gain.setValueAtTime(out.gain.value, n); out.gain.exponentialRampToValueAtTime(0.0001, n + 0.05);
+        src.stop(n + 0.08); o.stop(n + 0.08);
+      } };
+    },
+    // the drop: a sub-bass boom, a dark noise burst, a crash, and a synth chord on top; amount 0..1 from the build
+    dropHit(x, amount, echo) {
+      if (!this.ready()) return;
+      const d = this.voice(x), v = 0.5 + 0.5 * amount;
+      this.sweep(d, "sine", 75, 38, 0.9, 0.8 * v);
+      this.hiss(d, "lowpass", 2200, 180, 0.7, 0, 0.5, 0.5 * v);
+      this.hiss(this.voice(x, true), "highpass", 5200, 4800, 0.5, 0, 1.4, 0.18 * v);
+      for (const f of [392, 494, 587, 784]) this.synth(f, x, 0.6 * v, echo);
+    },
+    // a letter turning into a dancer
+    sparkle(x) { if (this.ready()) { const d = this.voice(x); [784, 988, 1175, 1568].forEach((f, k) => this.chime(d, f, k * 0.06, 0.09, 0.35)); } },
+    hello() { if (this.ready()) { const d = this.voice(W / 2); this.chime(d, 523, 0, 0.16, 0.45); this.chime(d, 659, 0.13, 0.16, 0.6); } },
+    gravity(mode) {
+      if (!this.ready()) return;
+      const d = this.voice(W / 2);
+      if (mode === 0) this.sweep(d, "sine", 660, 300, 0.4, 0.13);
+      else if (mode === 1) this.sweep(d, "sine", 300, 660, 0.4, 0.13);
+      else {
+        // weightless: a slow wobble
+        const ac = this.ac, t = ac.currentTime, o = ac.createOscillator(), lfo = ac.createOscillator(), depth = ac.createGain(), g = ac.createGain();
+        o.frequency.value = 440; lfo.frequency.value = 5; depth.gain.value = 25;
+        lfo.connect(depth).connect(o.frequency);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.08); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+        o.connect(g).connect(d); o.start(t); lfo.start(t); o.stop(t + 0.95); lfo.stop(t + 0.95);
+      }
+    },
+    // drum kit: left-to-right position nudges each drum a little lower or higher
+    tune(x) { return 0.85 + 0.3 * clamp((x ?? W / 2) / W, 0, 1); },
+    tick() { if (this.ready()) this.osc(this.voice(W / 2, true), "sine", 1800, 1800, 0, 0.05, 0.12); },
+    hat(x, loud = 0.07) { if (this.ready()) { const k = this.tune(x); this.hiss(this.voice(x, true), "highpass", 7000 * k, 6000 * k, 0.7, 0, 0.04, loud); } },
+    snare(x) {
+      if (!this.ready()) return;
+      const d = this.voice(x), k = this.tune(x);
+      this.hiss(d, "highpass", 1100 * k, 900 * k, 0.6, 0, 0.17, 0.32);
+      this.osc(d, "triangle", 210 * k, 160 * k, 0, 0.09, 0.22);
+    },
+    thud(x) { if (this.ready()) { const d = this.voice(x), k = this.tune(x); this.osc(d, "sine", 110 * k, 45, 0, 0.26, 0.5); this.hiss(d, "lowpass", 400, 120, 0.7, 0, 0.15, 0.35); } },
+    settle() { if (this.ready()) { const d = this.voice(W / 2); [523, 659, 784].forEach((f, k) => this.chime(d, f, k * 0.09, 0.07, 0.5)); } },
+    chute(x) { if (this.ready()) this.hiss(this.voice(x), "lowpass", 900, 300, 0.7, 0, 0.25, 0.2); },
+    hoop() { if (this.ready()) { const d = this.voice(W * 0.8); this.chime(d, 392, 0, 0.14, 0.4); this.chime(d, 523, 0.11, 0.14, 0.6); } },
+    basket(x, three) {
+      if (!this.ready()) return;
+      this.swish(x);
+      if (three) { const d = this.voice(x); this.chime(d, 1047, 0.06, 0.12, 0.5); this.chime(d, 1319, 0.15, 0.12, 0.7); }
+    },
+    bwomp(x) { if (this.ready()) this.sweep(this.voice(x), "triangle", 220, 100, 0.28, 0.16); },
+    buzzer() {
+      if (!this.ready()) return;
+      const ac = this.ac, t = ac.currentTime, o = ac.createOscillator(), lp = ac.createBiquadFilter(), g = ac.createGain();
+      o.type = "square"; o.frequency.value = 196; lp.type = "lowpass"; lp.frequency.value = 900;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.01);
+      g.gain.setValueAtTime(0.09, t + 0.4); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      o.connect(lp).connect(g).connect(this.voice(W / 2)); o.start(t); o.stop(t + 0.55);
+    },
+  };
+
+  // ---- tilt: on a phone, tilting it left or right leans gravity the same way
+  const tilt = { x: 0, target: 0, asked: false };
+  window.addEventListener("deviceorientation", (e) => {
+    if (e.gamma == null) return;
+    const ang = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
+    const deg = ang === 90 ? e.beta : ang === -90 || ang === 270 ? -e.beta : ang === 180 ? -e.gamma : e.gamma;
+    const v = clamp(Math.sin(deg * Math.PI / 180) * 1.6, -1, 1);
+    tilt.target = Math.abs(v) < 0.08 ? 0 : v;
+  });
+
+  // ---- letter pile -----------------------------------------------------
+  const pile = {
+    hint: "poke it, then let it settle. keep going.",
+    flip: false, stage: 0,
+    init(keep) {
+      const M = window.Matter;
+      this.ok = !!M;
+      if (!M) return;
+      if (!keep) { this.mode = 0; this.stage = 0; }
+      // flip and zero are derived from the gravity mode; zero stays on until the next press and hold
+      this.flip = this.mode === 1; this.zero = this.mode === 2 ? Infinity : 0;
+      this.word = ""; clearTimeout(this.waveT); clearTimeout(this.linksT);
+      this.engine = M.Engine.create();
+      this.engine.gravity.y = this.zero > 0 ? 0 : this.flip ? -1 : 1;
+      const maxW = Math.min(W - 48, 760), base = Math.min(W, H);
+      const last = PILE_STAGES.length - 1;
+      // a reference letter size for typed letters, the wave and the hoop, independent of the messages
+      this.unit = base * 0.09;
+      // the name, big, a little above the middle; the links line sits underneath it
+      this.layouts = [fit(PILE_STAGES[0], maxW, H * 0.3, base * 0.2, W / 2, H * NAME_Y)];
+      const name = this.layouts[0];
+      this.linkLayout = fit(LINKS_LINE, maxW, H * 0.2, base * 0.085, W / 2, H * NAME_Y + name.height / 2 + base * 0.14);
+      this.linkSpeed = this.linkLayout.glyphs.map(() => 1 + Math.random() * 0.6);
+      this.linkSpin = this.linkLayout.glyphs.map(() => (Math.random() - 0.5) * 1.2);
+      if (!keep) { this.linkShow = 1; this.linkDir = 1; }
+      // link boxes: glyphs come back in reading order, so split them by word length
+      const lg = this.linkLayout;
+      let n = 0;
+      this.links = PILE_LINKS.map((word) => {
+        const gs = lg.glyphs.slice(n, n + word.length); n += word.length;
+        const x0 = Math.min(...gs.map((g) => g.x - g.w / 2)), x1 = Math.max(...gs.map((g) => g.x + g.w / 2));
+        return { word, x0, x1, y: gs[0].y, fs: lg.fs };
+      });
+      const t = 400, o = { isStatic: true };
+      // the ceiling sits at the top edge; letters raining in pass through it until they are on screen
+      // two small gaps in it let a well-aimed letter escape and come back by parachute
+      const gw = Math.max(70, W * 0.1);
+      this.gaps = [W * 0.27, W * 0.73].map((x) => ({ x0: x - gw / 2, x1: x + gw / 2 }));
+      const e = [-t, this.gaps[0].x0, this.gaps[0].x1, this.gaps[1].x0, this.gaps[1].x1, W + t];
+      this.ceil = [0, 2, 4].map((i) => M.Bodies.rectangle((e[i] + e[i + 1]) / 2, -t / 2, e[i + 1] - e[i], t, { isStatic: true, collisionFilter: { category: 2 } }));
+      // plugs fill the gaps whenever gravity is flipped or off, so nothing escapes upward
+      this.plugs = this.gaps.map((g) => M.Bodies.rectangle((g.x0 + g.x1) / 2, -t / 2, g.x1 - g.x0, t, { isStatic: true, collisionFilter: { category: 0 } }));
+      this.bodies = this.make(this.stage, false);
+      const sides = [M.Bodies.rectangle(-t / 2, 0, t, H * 4, o), M.Bodies.rectangle(W + t / 2, 0, t, H * 4, o)];
+      M.Events.on(this.engine, "collisionStart", (e) => {
+        for (const pair of e.pairs) {
+          const a = pair.bodyA.parent, b = pair.bodyB.parent;
+          if (a.hover && b.ch && !b.floater) a.hover = false;
+          if (b.hover && a.ch && !a.floater) b.hover = false;
+        }
+      });
+      // letters bumping each other on their own stay quiet; only the letter you just let go of makes a sound,
+      // each time it hits something, so its bounces fade out as they get smaller (or it rings the rim)
+      M.Events.on(this.engine, "collisionStart", (e) => {
+        if (!sound.ready()) return;
+        const now = performance.now();
+        for (const pair of e.pairs) {
+          const a = pair.bodyA.parent, b = pair.bodyB.parent;
+          const n = pair.collision.normal;
+          const impact = Math.abs((a.velocity.x - b.velocity.x) * n.x + (a.velocity.y - b.velocity.y) * n.y);
+          for (const L of [a, b]) {
+            if (!L.ch || !L.releaseAt || L === this.drag || now - L.releaseAt > 3000) continue;
+            if (a.isRim || b.isRim) { if (impact > 0.8) sound.clang(Math.min(1, impact / 8), L.position.x); continue; }
+            if (impact > 1 && now - (L.lastKnock || 0) > 90) { L.lastKnock = now; sound.hit(Math.min(1, impact / 10), L.fs, L.position.x); }
+          }
+        }
+      });
+      M.Composite.add(this.engine.world, [
+        ...this.bodies,
+        M.Bodies.rectangle(W / 2, H + t / 2, W + t * 2, t, { isStatic: true, collisionFilter: { category: 4 } }),
+        ...this.ceil,
+        ...this.plugs,
+        ...sides,
+      ]);
+      this.loaded = this.stage; this.ghosts = [];
+      this.setPlugs();
+      this.state = "set"; this.drag = null; this.press = null; this.p = { x: 0, y: 0 };
+      this.hoop = null; this.throws = 0; this.throwsNeeded = randInt(...HOOP_FIRST_THROWS); hoopCard.hidden = true;
+      this.beat = null; this.thumps = []; this.rings = [];
+      this.wg = null; this.shelfPress = null; this.build = null; this.flash = 0;
+      this.freeze = null; this.dropSec = null; this.quake = 0; this.dropTint = 0;
+      this.slowmo = null; this.spelled = null; this.spellKey = ""; this.spellHold = 0; this.peek = null;
+      if (cur === this) hint.textContent = this.hint;
+      this.hold = 0; this.held = false; this.idle = 0;
+    },
+    // each letter's physics shape is its own ink box: "i" is tall and thin and topples, "m" is wide,
+    // "o" is a circle and rolls, "." is a tiny marble. Corners are rounded so they tumble rather than snag.
+    letterBody(ch, fs, x, y) {
+      const M = window.Matter, k = inkOf(ch), s = fs / 100;
+      const w = Math.max(k.w * s, fs * 0.18), h = Math.max(k.h * s, fs * 0.18);
+      const opts = { restitution: 0.35, friction: 0.5, frictionAir: 0.012 };
+      const b = ROUND.has(ch)
+        ? M.Bodies.circle(x, y, (w + h) / 4, opts)
+        : M.Bodies.rectangle(x, y, w, h, { ...opts, chamfer: { radius: Math.min(w, h) * 0.28 } });
+      b.ch = ch; b.fs = fs; b.oxu = k.ox / 100; b.oyu = k.oy / 100;
+      return b;
+    },
+    make(stage, rain) {
+      const M = window.Matter, l = this.layouts[stage];
+      return l.glyphs.map((g) => {
+        const k = inkOf(g.ch), hx = g.x + k.ox * l.fs / 100, hy = g.y + k.oy * l.fs / 100;
+        const x = rain ? 30 + Math.random() * (W - 60) : hx;
+        const y = !rain ? hy : this.flip ? H * 0.55 + Math.random() * H * 0.4 : -30 - Math.random() * H * 0.9;
+        const b = this.letterBody(g.ch, l.fs, x, y);
+        b.hx = hx; b.hy = hy; b.stage = stage;
+        if (rain && !this.flip) { b.entering = true; b.collisionFilter.mask = 0xffff & ~2; }
+        if (rain && this.zero > 0) M.Body.setVelocity(b, { x: (Math.random() - 0.5), y: 3 + Math.random() * 4 });
+        return b;
+      });
+    },
+    spawn(ch, fs, x, y) {
+      const M = window.Matter;
+      const b = this.letterBody(ch, fs, x, y);
+      b.extra = true;
+      if (this.zero > 0 && y < 0) M.Body.setVelocity(b, { x: 0, y: 3 });
+      if (y < 0) { b.entering = true; b.collisionFilter.mask = 0xffff & ~2; }
+      M.Composite.add(this.engine.world, b);
+      this.bodies.push(b);
+      return b;
+    },
+    extras() { return this.bodies.filter((b) => b.extra).length; },
+    // thin letters are hard to hit exactly, so a near miss still grabs the closest letter
+    hitAt(p) {
+      const exact = window.Matter.Query.point(this.bodies, p)[0];
+      if (exact) return exact;
+      let best = null, bd = Infinity;
+      for (const b of this.bodies) {
+        const d = Math.hypot(b.position.x - p.x, b.position.y - p.y);
+        if (d < Math.max(14, b.fs * 0.35) && d < bd) { bd = d; best = b; }
+      }
+      return best;
+    },
+    // each tap inflates a letter; the last one pops it into small copies
+    poke(b) {
+      const M = window.Matter;
+      b.taps = (b.taps || 0) + 1;
+      if (b.taps < POP_TAPS) {
+        // the growth is spread evenly over the taps, so every tap before the pop visibly swells it;
+        // it tops out at most of the screen, so a letter that starts big still fits
+        if (b.taps === 1) {
+          const start = b.fs, target = Math.max(Math.min(start * POP_MAX_SIZE, Math.min(W, H) * 0.75), start * 2);
+          b.growStep = Math.pow(target / start, 1 / (POP_TAPS - 1));
+        }
+        const g = b.growStep;
+        M.Body.scale(b, g, g); b.fs *= g; b.grow = (b.grow || 1) * g;
+        if (this.beat) this.playNote(b.ch, b.position.x, b.taps - 1); else sound.blip(b.taps, b.position.x);
+        return;
+      }
+      M.Body.scale(b, 1 / b.grow, 1 / b.grow); b.fs /= b.grow; b.grow = 0; b.taps = 0;
+      if (this.beat) sound.stab(b.position.x, this.beat.stepLen * 1.5); else sound.pop(b.position.x);
+      M.Body.setVelocity(b, { x: (Math.random() - 0.5) * 6, y: this.flip ? 10 : -10 });
+      if (this.extras() > MAX_EXTRAS) return;
+      for (let i = 0; i < 9; i++) {
+        const a = i / 9 * Math.PI * 2, m = this.spawn(b.ch, b.fs * 0.38, b.position.x + Math.cos(a) * 12, Math.max(10, b.position.y + Math.sin(a) * 12));
+        M.Body.setVelocity(m, { x: Math.cos(a) * (5 + Math.random() * 5), y: Math.sin(a) * (5 + Math.random() * 5) });
+      }
+    },
+    key(ch) {
+      if (!this.ok) return;
+      // during the word game typing doesn't make new letters: it floats a matching letter up onto the shelf
+      if (this.wg) { this.typeToShelf(ch.toLowerCase()); return; }
+      const letter = /^[a-z]$/i.test(ch);
+      const fs = this.unit * 1.3, now = performance.now();
+      // typed letters line up left to right like a typewriter; a pause starts a new line
+      const left = W * 0.12, right = W * 0.88;
+      // a pause also starts a new word, so "email" typed now and "resume" typed later don't run together
+      if (!this.typeX || now - this.lastKey > 1500) { this.typeX = left; this.word = ""; this.nameAt = 0; }
+      this.lastKey = now;
+      if (ch === " ") { this.typeX += fs * 0.35; this.word = ""; return; }
+      if (!/^[a-z0-9!?.]$/i.test(ch)) { this.word = ""; return; }
+      // past the cap no new letter appears, but the key still makes its sound (or note, in DJ mode)
+      const full = this.extras() > MAX_EXTRAS;
+      if (this.state !== "loose") this.collapse({ x: W / 2, y: -99999 });
+      this.idle = 0;
+      // whatever key you press, the next letter of your name is what falls (secret words still use the real keys)
+      let shown = PILE_STAGES[0][(this.nameAt || 0) % PILE_STAGES[0].length];
+      if (shown === " ") { this.typeX += fs * 0.35; this.nameAt = (this.nameAt || 0) + 1; shown = PILE_STAGES[0][this.nameAt % PILE_STAGES[0].length]; }
+      this.nameAt = (this.nameAt || 0) + 1;
+      ctx.font = font(fs);
+      const w = ctx.measureText(shown).width;
+      if (this.typeX + w > right) this.typeX = left;
+      const y = this.flip ? H * 0.75 : -30;
+      const kx = this.typeX + w / 2 + (Math.random() - 0.5) * 4;
+      if (!full) {
+        const b = this.spawn(shown, fs, kx, y + (Math.random() - 0.5) * 6);
+        window.Matter.Body.setAngle(b, (Math.random() - 0.5) * 0.12);
+      }
+      if (!this.playNote(shown, kx)) { sound.last = -1; sound.hit(0.45, fs, kx); }
+      this.typeX += w * 1.06;
+      if (!letter) { this.word = ""; return; }
+      // typing a greeting gets a wave back, a beat after the last letter
+      clearTimeout(this.waveT); clearTimeout(this.linksT);
+      this.word = (this.word + ch.toLowerCase()).slice(-12);
+      const emoji = WORD_EMOJI[this.word];
+      if (emoji) this.waveT = setTimeout(() => this.wave(emoji), 700);
+      // typing one of the link words opens it (right away, while the keypress still counts as a click for
+      // pop-up blockers) and brings the links screen back a moment later
+      if (this.word === "words" || this.word === "word") { this.linksT = setTimeout(() => this.startWords(), 700); this.word = ""; }
+      // typing "stop" stops the beat and puts everything back on the links screen
+      if (this.word === "stop") {
+        this.linksT = setTimeout(() => { if (this.beat) this.stopBeat(); this.showLinks(); }, 700);
+        this.word = "";
+      }
+      if (PILE_LINKS.includes(this.word)) {
+        this.openLink(this.word);
+        this.linksT = setTimeout(() => this.showLinks(), 700);
+        this.word = "";
+      }
+      if (HOOP_WORDS.includes(this.word) && !this.hoop && this.state === "loose") this.hoopShow();
+    },
+    wave(emoji) {
+      if (cur !== this || !this.ok) return;
+      const fs = this.unit * 2.2;
+      const b = this.spawn(emoji, fs, W * (0.35 + Math.random() * 0.3), this.flip ? H * 0.8 : -fs);
+      b.frictionAir = 0.09; b.waving = 0;
+      sound.hello();
+    },
+    // a double-tap on empty space thumps the table: letters near the tap jump hardest
+    // kind is the drum: the kick launches letters, the snare bounces them, a hat just makes the nearest ones hop
+    thump(p, auto = false, kind = "kick") {
+      const power = { kick: 1, snare: 0.55, hat: 0.28 }[kind];
+      if (kind === "kick") sound.thud(p.x); else if (kind === "snare") sound.snare(p.x); else sound.hat(p.x, 0.12);
+      this.rings.push({ x: p.x, y: p.y, t: 0, size: power });
+      if (!auto && !this.beat && !this.wg) {
+        // keep drumming double-taps and the page picks up your tempo and carries on by itself
+        const now = performance.now() / 1000;
+        this.thumps = this.thumps.filter((t) => now - t.at < BEAT_MAX_GAP * BEAT_AFTER_THUMPS);
+        const last = this.thumps[this.thumps.length - 1];
+        if (last && now - last.at > BEAT_MAX_GAP) this.thumps = [];
+        this.thumps.push({ at: now, x: p.x, y: p.y });
+        if (this.thumps.length >= BEAT_AFTER_THUMPS) this.startBeat();
+      }
+      const M = window.Matter, up = this.flip ? 1 : -1;
+      if (this.state !== "loose") this.collapse(p);
+      this.idle = 0;
+      const reach = Math.max(W, H) * 0.35 * (kind === "kick" ? 1 : kind === "snare" ? 0.7 : 0.45);
+      for (const b of this.bodies) {
+        const dx = b.position.x - p.x, d = Math.hypot(dx, b.position.y - p.y) || 1;
+        const near = Math.exp(-d / reach);
+        if (kind !== "kick" && near < 0.15) continue;
+        // only letters down near the floor get launched; ones already up in the air are left to fall
+        const fromFloor = this.flip ? b.position.y : H - b.position.y;
+        const grounded = clamp(1 - (fromFloor - H * 0.25) / (H * 0.35), 0, 1);
+        if (grounded <= 0) continue;
+        M.Body.setVelocity(b, { x: b.velocity.x + (dx / d * 5 * near + (Math.random() - 0.5) * 2) * power * grounded, y: up * (4 + Math.random() * 6 + 9 * near) * power * grounded });
+        M.Body.setAngularVelocity(b, (Math.random() - 0.5) * 0.3 * power);
+      }
+    },
+    // the beat is a bar of 8 half-beat steps; each drum (kick, snare, hat) is a layer with the steps it plays on
+    startBeat() {
+      const ts = this.thumps.slice(-BEAT_AFTER_THUMPS);
+      const gaps = ts.slice(1).map((t, i) => t.at - ts[i].at).sort((a, b) => a - b);
+      const interval = clamp(gaps[Math.floor(gaps.length / 2)], 0.3, BEAT_MAX_GAP);
+      const x = ts.reduce((a, t) => a + t.x, 0) / ts.length, y = ts.reduce((a, t) => a + t.y, 0) / ts.length;
+      this.beat = {
+        stepLen: interval / 2, step: 0, acc: 0, startedAt: performance.now() / 1000,
+        layers: { kick: { steps: new Set([0, 2, 4, 6]), x, y }, snare: null, hat: null },
+      };
+      this.thumps = [];
+      // DJ mode always plays with normal, right-side-up gravity
+      if (this.mode !== 0) { this.mode = 0; this.flip = false; this.zero = 0; this.setFlip(); this.slowmo = { t: 0, ...FALL_SLOWMO }; }
+      clearTimeout(this.announceT);
+      hint.textContent = DJ_HINTS[0];
+    },
+    stopBeat() {
+      clearTimeout(this.beatStopT);
+      // the music stopped, so the dancers do too
+      for (const b of this.bodies) if (b.dance) { b.dance = null; b.collisionFilter.group = 0; }
+      if (this.build) { if (this.build.riser) this.build.riser.stop(); this.build = null; this.setFlip(); }
+      this.freeze = null;
+      if (this.dropSec) {
+        this.mode = this.dropSec.before; this.flip = this.mode === 1; this.zero = this.mode === 2 ? Infinity : 0;
+        this.dropSec = null; this.setFlip();
+      }
+      this.beat = null;
+      clearTimeout(this.announceT);
+      hint.textContent = this.hint;
+    },
+    // each letter has its own note on a pentatonic scale, so any word is a little tune that fits the beat
+    // ("alia" outlines a chord). extra climbs the scale, for a swelling letter.
+    letterFreq(ch, extra = 0) {
+      const SC = [0, 2, 4, 7, 9];
+      const deg = (ch.toLowerCase().charCodeAt(0) % 10) + extra;
+      return 392 * Math.pow(2, (SC[deg % 5] + 12 * Math.floor(deg / 5)) / 12 - 1);
+    },
+    // during the beat, notes wait for the next half-beat, and quick typing queues them one per half-beat
+    playNote(ch, x, extra = 0) {
+      const b = this.beat;
+      if (!b || !/^[a-z0-9]$/i.test(ch)) return false;
+      const now = performance.now(), step = b.stepLen * 1000;
+      let at = b.acc < b.stepLen * 0.25 ? now : now + (b.stepLen - b.acc) * 1000;
+      if (this.noteAt && at < this.noteAt + step - 5) at = this.noteAt + step;
+      if (at - now > 2500) return true;
+      this.noteAt = at;
+      const f = this.letterFreq(ch, extra);
+      const echo = b.stepLen * 1.5;
+      setTimeout(() => sound.synth(f, x, 0.6, echo), Math.max(0, at - now));
+      return true;
+    },
+    zoneOf(y) { return y < H / 3 ? "hat" : y < (H * 2) / 3 ? "snare" : "kick"; },
+    beatStep(dt) {
+      const b = this.beat;
+      if (!b) return;
+      this.idle = 0;
+      b.acc += dt;
+      while (b.acc >= b.stepLen) {
+        b.acc -= b.stepLen;
+        b.step = (b.step + 1) % 8; b.total = (b.total || 0) + 1;
+        // every 2 bars, show the next DJ tip (unless the build-up is using the hint bar)
+        if (b.total % 16 === 0 && !this.build) { b.tip = ((b.tip || 0) + 1) % DJ_HINTS.length; hint.textContent = DJ_HINTS[b.tip]; }
+        // during the build-up the drums drop out, leaving just the riser and the snare roll
+        if (this.build) continue;
+        if (this.dropSec) { this.dropStep(b); continue; }
+        for (const kind of ["kick", "snare", "hat"]) {
+          const L = b.layers[kind];
+          if (L && L.steps.has(b.step)) this.thump({ x: L.x + (Math.random() - 0.5) * 30, y: L.y }, true, kind);
+        }
+        // until you add hats, a quiet tick on the off-beats keeps the groove
+        if (!b.layers.hat && b.step % 2 === 1) sound.hat(b.layers.kick.x + (Math.random() - 0.5) * 60);
+      }
+    },
+    // a double-tap while the beat runs adds that row's drum at the nearest half-beat, so it always lands in time;
+    // double-tapping the same row at the same point in the bar takes it out again
+    addDrum(p) {
+      const b = this.beat, kind = this.zoneOf(p.y);
+      const pos = b.step + b.acc / b.stepLen, near = Math.round(pos), n = ((near % 8) + 8) % 8;
+      let L = b.layers[kind];
+      if (!L) L = b.layers[kind] = { steps: new Set(), x: p.x, y: p.y };
+      if (L.steps.has(n)) {
+        L.steps.delete(n);
+        if (!L.steps.size && kind !== "kick") b.layers[kind] = null;
+        return;
+      }
+      L.steps.add(n); L.x = p.x; L.y = p.y;
+      // if the nearest step is still coming, the loop plays it; if it has just passed, play it now
+      if (near <= pos) this.thump(p, true, kind);
+    },
+    dbl(p) {
+      if (!this.ok || this.held) return;
+      if (this.wg && this.onShelf(p)) return;
+      // while the beat runs, double-taps build the loop
+      if (this.beat) {
+        clearTimeout(this.beatStopT);
+        this.addDrum(p);
+        return;
+      }
+      if (this.hitAt(p)) { this.tap(p); return; }
+      this.thump(p);
+    },
+    drawChute(b) {
+      // fold runs 1 to 0 as the canopy collapses after landing and tips over to one side
+      const fold = b.deflate === undefined ? 1 : 1 - ease(clamp(b.deflate / 0.8, 0, 1));
+      const open = ease(clamp(b.chuteT / 0.45, 0, 1)) * (0.15 + 0.85 * fold);
+      const breathe = 1 + Math.sin(b.chuteT * 3.1 + b.id) * 0.04;
+      const r = Math.max(b.fs * 0.95, 20) * breathe * (0.25 + 0.75 * open);
+      const h = r * 0.62 * (0.6 + 0.4 * open), L = r * 1.7, N = 6;
+      ctx.save();
+      ctx.globalAlpha = fold;
+      ctx.translate(b.position.x, b.position.y);
+      ctx.rotate(b.angle + (1 - fold) * 1.2 * (b.side || 1));
+      ctx.translate(0, -b.fs * 0.32);
+      // skirt points: the edge droops a little toward the sides
+      const edge = [];
+      for (let i = 0; i <= N; i++) {
+        const u = -1 + 2 * i / N;
+        edge.push({ x: u * r, y: -L + u * u * r * 0.12 });
+      }
+      const apex = { x: 0, y: -L - h };
+      const ctrl = (e) => ({ x: e.x * 1.08, y: -L - h * 0.95 + Math.abs(e.x / r) * h * 0.1 });
+      // rigging lines from every seam down to the letter
+      ctx.strokeStyle = C.muted; ctx.lineWidth = 0.8; ctx.globalAlpha = 0.8 * fold;
+      for (const e of edge) { ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(0, 0); ctx.stroke(); }
+      ctx.globalAlpha = fold;
+      const silhouette = () => {
+        ctx.beginPath(); ctx.moveTo(apex.x, apex.y);
+        const c0 = ctrl(edge[0]); ctx.quadraticCurveTo(c0.x, c0.y, edge[0].x, edge[0].y);
+        for (let i = 0; i < N; i++) {
+          const a = edge[i], z = edge[i + 1];
+          ctx.quadraticCurveTo((a.x + z.x) / 2, (a.y + z.y) / 2 - r * 0.13, z.x, z.y);
+        }
+        const cN = ctrl(edge[N]); ctx.quadraticCurveTo(cN.x, cN.y, apex.x, apex.y);
+        ctx.closePath();
+      };
+      // striped panels, each one a seam-to-seam slice of the dome
+      for (let i = 0; i < N; i++) {
+        const a = edge[i], z = edge[i + 1], ca = ctrl(a), cz = ctrl(z);
+        ctx.beginPath(); ctx.moveTo(apex.x, apex.y);
+        ctx.quadraticCurveTo(ca.x, ca.y, a.x, a.y);
+        ctx.quadraticCurveTo((a.x + z.x) / 2, (a.y + z.y) / 2 - r * 0.13, z.x, z.y);
+        ctx.quadraticCurveTo(cz.x, cz.y, apex.x, apex.y);
+        ctx.closePath();
+        ctx.fillStyle = i % 2 ? C.foam : C.pink; ctx.fill();
+      }
+      // light from the upper left, shade on the lower right
+      const g = ctx.createLinearGradient(-r, -L - h, r, -L);
+      g.addColorStop(0, "rgba(255,255,255,0.32)");
+      g.addColorStop(0.5, "rgba(255,255,255,0)");
+      g.addColorStop(1, "rgba(0,0,0,0.22)");
+      silhouette(); ctx.fillStyle = g; ctx.fill();
+      ctx.strokeStyle = C.fg; ctx.globalAlpha = 0.35 * fold; ctx.lineWidth = 1; ctx.stroke();
+      ctx.globalAlpha = fold;
+      // the underside of the skirt, a thin dark band that gives the dome its depth
+      ctx.beginPath(); ctx.moveTo(edge[0].x, edge[0].y);
+      for (let i = 0; i < N; i++) {
+        const a = edge[i], z = edge[i + 1];
+        ctx.quadraticCurveTo((a.x + z.x) / 2, (a.y + z.y) / 2 - r * 0.13, z.x, z.y);
+      }
+      ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.restore();
+    },
+    // ---- the drop: hold during the beat to build up, let go to drop
+    startBuild(p) {
+      this.build = { t: 0, x: p.x, y: p.y, roll: 0, riser: sound.riser() };
+      clearTimeout(this.announceT);
+      hint.textContent = "keep holding...";
+    },
+    buildStep(dt) {
+      const bd = this.build, b = this.beat;
+      if (!bd) return;
+      if (!b) { if (bd.riser) bd.riser.stop(); this.build = null; return; }
+      bd.t += dt;
+      if (bd.t >= DROP_MIN_HOLD && !bd.ready) { bd.ready = true; hint.textContent = "let go to drop!"; }
+      const amount = Math.min(1, bd.t / BUILD_SECONDS), M = window.Matter;
+      // letters get lighter and start to tremble
+      this.engine.gravity.y = (this.zero > 0 ? 0 : this.flip ? -1 : 1) * (1 - 0.85 * amount);
+      for (const body of this.bodies) {
+        if (body.dance) continue;
+        M.Body.setVelocity(body, { x: body.velocity.x + (Math.random() - 0.5) * 1.6 * amount, y: body.velocity.y + (Math.random() - 0.5) * 1.6 * amount });
+      }
+      // a snare roll that speeds up: every half-beat, then quarter-beat, then faster
+      const gap = b.stepLen * (amount < 0.34 ? 1 : amount < 0.67 ? 0.5 : 0.25);
+      bd.roll += dt;
+      if (bd.roll >= gap) {
+        bd.roll = 0;
+        sound.snare(bd.x + (Math.random() - 0.5) * 80);
+        this.rings.push({ x: bd.x, y: bd.y, t: 0, size: 0.2 + amount * 0.5 });
+      }
+    },
+    // letting go: a split second of silence with everything frozen in mid-air, then the boom
+    drop() {
+      const bd = this.build;
+      if (!bd) return;
+      this.build = null;
+      if (bd.riser) bd.riser.stop();
+      // let go too soon and the build-up just fades away: no drop, the loop carries on
+      if (bd.t < DROP_MIN_HOLD) {
+        this.setFlip();
+        clearTimeout(this.announceT);
+        hint.textContent = DJ_HINTS[0];
+        return;
+      }
+      if (!this.beat) { this.setFlip(); return; }
+      this.freeze = { t: DROP_FREEZE, bd, amount: Math.max(0.3, Math.min(1, bd.t / BUILD_SECONDS)) };
+    },
+    boom(f) {
+      const { bd, amount } = f, b = this.beat, M = window.Matter;
+      this.slowmo = null; this.engine.timing.timeScale = 1;
+      if (!b) { this.setFlip(); return; }
+      // gravity flips for two bars, so everything flies to the ceiling, then slams back down on the downbeat
+      const before = this.mode, during = before === 1 ? 0 : 1;
+      this.mode = during; this.flip = during === 1; this.zero = 0;
+      this.setFlip();
+      sound.dropHit(bd.x, amount, b.stepLen * 1.5);
+      const up = this.flip ? 1 : -1;
+      for (const body of this.bodies) {
+        if (body.dance) continue;
+        const dx = body.position.x - bd.x, dy = body.position.y - bd.y, d = Math.hypot(dx, dy) || 1;
+        M.Body.setVelocity(body, { x: dx / d * 16 * amount + (Math.random() - 0.5) * 4, y: up * (10 + Math.random() * 10) * amount + dy / d * 4 });
+        M.Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.6);
+      }
+      for (let k = 0; k < 4; k++) this.rings.push({ x: bd.x, y: bd.y, t: -k * 0.08, size: 1.6 + amount });
+      this.flash = 0.55 * amount + 0.2;
+      this.quake = 0.5 + 0.5 * amount;
+      // the drop section: 4 bars of a fuller groove, then back to your loop
+      this.dropSec = { left: DROP_SECTION_BARS * 8, n: 0, before, x: b.layers.kick.x };
+      b.step = 7; b.acc = b.stepLen;
+      clearTimeout(this.announceT);
+      hint.textContent = DJ_HINTS[0];
+    },
+    dropStep(b) {
+      const sec = this.dropSec, s = b.step, x = sec.x;
+      // four on the floor, snare on 2 and 4, hats on every half-beat, and a synth bassline
+      if (s % 2 === 0) { this.thump({ x: x + (Math.random() - 0.5) * 40, y: H * 0.85 }, true, "kick"); this.dropTint = 1; this.dropColor = (this.dropColor || 0) + 1; }
+      if (s === 2 || s === 6) this.thump({ x: W / 2 + (Math.random() - 0.5) * W * 0.3, y: H * 0.5 }, true, "snare");
+      sound.hat(W * (0.2 + Math.random() * 0.6), 0.09);
+      const bar = Math.floor(sec.n / 8) % 2, bass = [[196, 0, 0, 196, 0, 0, 294, 0], [165, 0, 0, 165, 0, 0, 247, 0]][bar][s];
+      if (bass) sound.synth(bass, W / 2, 0.7, b.stepLen * 1.5);
+      sec.n += 1; sec.left -= 1;
+      // after two bars gravity snaps back, with an extra-big kick
+      if (sec.n === 16) {
+        this.mode = sec.before; this.flip = this.mode === 1; this.zero = this.mode === 2 ? Infinity : 0;
+        this.setFlip();
+        this.slowmo = { t: 0, ...FALL_SLOWMO };
+        sound.thud(W / 2);
+        this.quake = 0.4; this.flash = 0.25;
+      }
+      if (sec.left <= 0) this.dropSec = null;
+    },
+    // ---- dancing letters: hold a letter still for a second, let go, and it dances on stick legs.
+    // Dancers never collide with each other, and groups dance together: 2 are partners, 3 do the wave,
+    // 4-5 hold hands in a turning circle, 6 do a kickline.
+    danceDims(b) { const k = inkOf(b.ch), w = k.w * b.fs / 100, h = k.h * b.fs / 100; return { w, h, leg: h * 0.45 }; },
+    danceStep(dt) {
+      const M = window.Matter;
+      this.danceT = (this.danceT || 0) + dt;
+      for (const b of this.bodies) {
+        if (!b.dance || b.dance.held) continue;
+        b.dance.t += dt;
+        if (b.dance.t > DANCE_SECONDS) { b.dance = null; b.collisionFilter.group = 0; }
+      }
+      const D = this.bodies.filter((b) => b.dance && !b.dance.held);
+      const n = D.length;
+      if (!n) return;
+      // keep a stable order (left to right when the group forms), so nobody swaps places mid-dance
+      const key = D.map((b) => b.id).sort().join(",");
+      if (key !== this.danceKey) { this.danceKey = key; this.danceOrder = D.slice().sort((a, b) => a.dance.px - b.dance.px); }
+      const order = this.danceOrder, beats = this.danceClock();
+      const dims = order.map((b) => this.danceDims(b));
+      // spacing between dancers in a line, squeezed if needed so the whole line fits on screen
+      const gap = Math.min(Math.max(...dims.map((d) => d.w + d.h * 0.8)) + 8, (W - 40) / Math.max(n, 2));
+      const up = this.flip ? 1 : -1, groundY = this.flip ? 0 : H, floating = this.zero > 0;
+      const avgX = order.reduce((a, b) => a + b.dance.x, 0) / n, avgY = order.reduce((a, b) => a + b.dance.y, 0) / n;
+      // where a dancer stands: feet on the ground (or hovering if gravity is off), raised by extra
+      const standY = (dm, scale, extra) => (floating ? avgY : groundY + up * (dm.leg + dm.h / 2) * scale) + up * extra;
+      const mode = n === 1 ? "solo" : n === 2 ? "pair" : n === 3 ? "wave" : n < MARCH_AT ? "circle" : "march";
+      // the march: everyone follows a path around the inside edge of the screen, feet always against the edge
+      const marchSpacing = Math.max(...dims.map((d) => d.w + d.h * 0.6)) + 10;
+      const lead = dims[0], leadP = 2 * (W - 2 * (lead.leg + lead.h / 2)) + 2 * (H - 2 * (lead.leg + lead.h / 2));
+      const marchU = (beats * MARCH_PX_PER_BEAT) / leadP;
+      order.forEach((b, k) => {
+        const d = b.dance, dm = dims[k];
+        let tx, ty, angle = 0, scale = 1, depth = 0, off = 0, arms = "linked", kick = 0;
+        const bounce = (o) => Math.abs(Math.sin(Math.PI * ((beats + o) % 1))) * dm.h * 0.22;
+        if (mode === "solo") {
+          arms = "free";
+          tx = clamp(d.x + Math.sin((beats / 4) * Math.PI * 2) * dm.w * 0.6, dm.w, W - dm.w);
+          ty = standY(dm, 1, bounce(0)); angle = Math.sin((beats / 2) * Math.PI * 2) * 0.22;
+        } else if (mode === "pair") {
+          const cx = clamp(avgX, gap, W - gap), s = k ? 1 : -1;
+          off = k * 0.5;
+          tx = cx + s * gap * 0.5; ty = standY(dm, 1, bounce(off));
+          angle = -s * 0.18 * Math.sin(Math.PI * beats);
+        } else if (mode === "wave") {
+          const cx = clamp(avgX, gap * 1.5, W - gap * 1.5);
+          off = k / 3;
+          tx = cx + (k - 1) * gap + Math.sin((beats / 4) * Math.PI * 2) * gap * 0.25;
+          ty = standY(dm, 1, bounce(off)); angle = Math.sin((beats / 2) * Math.PI * 2) * 0.12;
+        } else if (mode === "circle") {
+          const R = Math.min(clamp((gap * n) / (Math.PI * 2) * 1.15, 50, W * 0.3), W / 2 - gap);
+          const cx = W / 2; // the circle always dances in the middle of the screen
+          const th = (k / n) * Math.PI * 2 + (beats / 8) * Math.PI * 2;
+          depth = Math.sin(th); scale = 0.8 + 0.2 * (depth + 1) / 2;
+          tx = cx + R * Math.cos(th);
+          ty = standY(dm, scale, (1 - depth) / 2 * R * 0.25 + bounce(0) * scale);
+          angle = -Math.cos(th) * 0.1;
+        } else {
+          arms = "free";
+          const at = this.edgePath(marchU - (k * marchSpacing) / leadP, dm.leg + dm.h / 2);
+          const lift = bounce(0) * 0.35;
+          tx = at.x - Math.sin(at.angle) * lift * -1; ty = at.y - Math.cos(at.angle) * lift;
+          angle = at.angle + Math.sin(beats * Math.PI) * 0.08;
+          // the line wraps around the corners, so let each dancer jump straight there rather than glide across
+          if (Math.hypot(tx - d.px, ty - d.py) > 120) { d.px = tx; d.py = ty; }
+        }
+        if (this.flip && !floating && mode !== "march") angle += Math.PI;
+        // glide into place rather than jumping
+        const ease = Math.min(1, dt * 6);
+        d.px += (tx - d.px) * ease; d.py += (ty - d.py) * ease;
+        Object.assign(d, { angle, scale, depth, off, arms, kick, mode });
+        b.collisionFilter.group = -7; // dancers pass through each other
+        M.Body.setPosition(b, { x: d.px, y: d.py }); M.Body.setVelocity(b, { x: 0, y: 0 });
+        M.Body.setAngle(b, angle); M.Body.setAngularVelocity(b, 0);
+      });
+      if (mode === "march") {
+        // letters in the marchers' way hop aside, toward the middle of the screen
+        for (const m of order) {
+          const reach = this.danceDims(m).h * 0.9;
+          for (const o of this.bodies) {
+            if (o.dance || o === this.drag) continue;
+            const dx = o.position.x - m.position.x, dy = o.position.y - m.position.y;
+            if (Math.hypot(dx, dy) > reach + o.fs * 0.4) continue;
+            const ix = W / 2 - m.position.x, iy = H / 2 - m.position.y, il = Math.hypot(ix, iy) || 1;
+            M.Body.setVelocity(o, { x: (ix / il) * 6 + (Math.random() - 0.5) * 2, y: (iy / il) * 6 - 2 });
+          }
+        }
+      }
+    },
+    // a point u (0..1, wrapping) along the inside edge of the screen, inset so feet touch the edge:
+    // along the floor to the right, up the right wall, across the ceiling, down the left wall.
+    // angle turns the dancer so its feet face the edge, and eases round each corner.
+    edgePath(u, inset) {
+      const x0 = inset, x1 = W - inset, y0 = inset, y1 = H - inset, a = x1 - x0, b = y1 - y0;
+      const segs = [
+        { len: a, x: x0, y: y1, dx: 1, dy: 0, ang: 0 },
+        { len: b, x: x1, y: y1, dx: 0, dy: -1, ang: -Math.PI / 2 },
+        { len: a, x: x1, y: y0, dx: -1, dy: 0, ang: -Math.PI },
+        { len: b, x: x0, y: y0, dx: 0, dy: 1, ang: -Math.PI * 1.5 },
+      ];
+      let s = (((u % 1) + 1) % 1) * (2 * a + 2 * b), i = 0;
+      while (i < 3 && s > segs[i].len) { s -= segs[i].len; i++; }
+      const g = segs[i], c = Math.min(30, g.len / 2);
+      let angle = g.ang;
+      if (g.len - s < c) angle = g.ang - (Math.PI / 2) * ((c - (g.len - s)) / (2 * c));
+      else if (s < c) angle = g.ang + (Math.PI / 2) * ((c - s) / (2 * c));
+      return { x: g.x + g.dx * s, y: g.y + g.dy * s, angle };
+    },
+    // everyone dances to the beat when there is one, otherwise to a shared 120bpm groove
+    danceClock() {
+      const b = this.beat;
+      if (b) return ((b.total || 0) + b.acc / b.stepLen) / 2;
+      return (this.danceT || 0) / 0.5;
+    },
+    // where a dancer's hand is on screen (side -1 left, 1 right), for drawing held hands
+    handAt(b, side) {
+      const d = b.dance, dm = this.danceDims(b), sc = d.scale || 1;
+      const lx = side * (dm.w * 0.45 + dm.h * 0.3), ly = d.arms === "shoulders" ? -dm.h * 0.12 : dm.h * 0.08;
+      const c = Math.cos(b.angle), sn = Math.sin(b.angle);
+      return { x: b.position.x + (lx * c - ly * sn) * sc, y: b.position.y + (lx * sn + ly * c) * sc };
+    },
+    drawDancers() {
+      const D = this.bodies.filter((b) => b.dance && !b.dance.held);
+      if (!D.length) return;
+      const order = (this.danceOrder || []).filter((b) => D.includes(b));
+      const mode = D[0].dance.mode;
+      // held hands: a sagging line from each dancer's hand to the next one's
+      if (order.length > 1 && mode !== "solo" && mode !== "march") {
+        const pairs = order.slice(0, -1).map((b, k) => [b, order[k + 1]]);
+        if (mode === "circle") pairs.push([order[order.length - 1], order[0]]);
+        ctx.save(); ctx.lineCap = "round";
+        for (const [a, b] of pairs) {
+          let ha = this.handAt(a, 1), hb = this.handAt(b, -1);
+          if (mode === "circle" && ha.x > hb.x) { ha = this.handAt(a, -1); hb = this.handAt(b, 1); }
+          ctx.strokeStyle = this.danceColor(a); ctx.lineWidth = Math.max(2, a.fs * 0.05);
+          ctx.globalAlpha = mode === "circle" ? 0.55 + 0.45 * ((a.dance.depth + b.dance.depth) / 4 + 0.5) : 1;
+          ctx.beginPath(); ctx.moveTo(ha.x, ha.y);
+          ctx.quadraticCurveTo((ha.x + hb.x) / 2, (ha.y + hb.y) / 2 + (this.flip ? -1 : 1) * (mode === "kick" ? 2 : 10), hb.x, hb.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+      // back of the circle first, so the front dancers overlap them
+      D.slice().sort((a, b) => (a.dance.depth || 0) - (b.dance.depth || 0)).forEach((b) => this.drawDancer(b));
+    },
+    danceColor(b) {
+      const d = b.dance;
+      if (d.held) return C.pink;
+      return [C.pink, C.sun, C.sea][Math.floor(this.danceClock() + (d.off || 0)) % 3];
+    },
+    drawDancer(b) {
+      const d = b.dance, fs = b.fs, { w, h, leg } = this.danceDims(b);
+      const beats = d.held ? 0 : this.danceClock() + (d.off || 0), ph = beats % 1, n = Math.floor(beats);
+      const color = this.danceColor(b), sq = d.held ? 0 : Math.cos(ph * Math.PI * 2), sc = d.scale || 1;
+      ctx.save();
+      ctx.translate(b.position.x, b.position.y); ctx.rotate(b.angle);
+      ctx.scale(sc * (1 + 0.06 * sq), sc * (1 - 0.08 * sq));
+      ctx.strokeStyle = color; ctx.lineWidth = Math.max(2, fs * 0.055); ctx.lineCap = "round"; ctx.lineJoin = "round";
+      const side = n % 2 ? 1 : -1, lift = d.held ? 0 : Math.abs(Math.sin(ph * Math.PI)) * leg * 0.35;
+      for (const s of [-1, 1]) {
+        const hipX = s * w * 0.18, hipY = h / 2;
+        ctx.beginPath(); ctx.moveTo(hipX, hipY);
+        if (d.kick === s) {
+          // a kickline kick: the leg swings out and up
+          const k = Math.sin(ph * Math.PI);
+          ctx.lineTo(s * (w * 0.3 + leg * 0.9 * k), hipY + leg * (1 - 1.3 * k));
+        } else {
+          const upBy = s === side && d.kick === 0 ? lift : 0;
+          ctx.lineTo(s * w * 0.28, hipY + leg * 0.5 - upBy);
+          ctx.lineTo(s * w * 0.24, hipY + leg - upBy * 0.6);
+        }
+        ctx.stroke();
+      }
+      for (const s of [-1, 1]) {
+        const sx = s * w * 0.45, sy = -h * 0.05;
+        ctx.beginPath(); ctx.moveTo(sx, sy);
+        if (d.arms === "free" || d.held) {
+          const raise = d.held ? 0.3 : (s === side ? 1 : -0.4) * (0.6 + 0.4 * Math.sin(ph * Math.PI));
+          ctx.lineTo(sx + s * h * 0.22, sy - h * 0.12 * raise);
+          ctx.lineTo(sx + s * h * 0.38, sy - h * 0.38 * raise);
+        } else {
+          // reaching out to hold hands (or over the neighbour's shoulders in the kickline)
+          ctx.lineTo(sx + s * h * 0.3, d.arms === "shoulders" ? -h * 0.12 : h * 0.08);
+        }
+        ctx.stroke();
+      }
+      drawGlyph(b.ch, 0, 0, 0, fs, color, (b.oxu || 0) * fs, (b.oyu || 0) * fs);
+      ctx.restore();
+    },
+    // ---- the peek: a "words?" tab that slides down after a while of play, as an invitation to the word game
+    peekRect() { const w = 150, h = 38; return { x: W / 2 - w / 2, y: 14, w, h }; },
+    onPeek(p) {
+      if (!this.peek || this.peek.leaving || this.peek.rise < 1) return false;
+      const r = this.peekRect();
+      return p.x > r.x - 10 && p.x < r.x + r.w + 10 && p.y > r.y - 10 && p.y < r.y + r.h + 10;
+    },
+    peekStep(dt) {
+      const busy = this.wg || this.beat || this.inGame() || this.build || this.freeze || this.state !== "loose";
+      if (this.peek) {
+        const pk = this.peek;
+        pk.t += dt;
+        if (busy || pk.t > PEEK_STAY) pk.leaving = true;
+        pk.rise = clamp(pk.rise + (pk.leaving ? -dt / 0.4 : dt / 0.5), 0, 1);
+        if (pk.leaving && pk.rise <= 0) { this.peek = null; this.peekAgainAt = performance.now() + PEEK_AGAIN * 1000; this.playT = 0; }
+        return;
+      }
+      if (busy || performance.now() < Math.max(this.peekAgainAt || 0, this.wordsCooldownUntil || 0)) return;
+      // only time spent actually playing counts (something touched in the last few seconds)
+      if (this.idle < 4) this.playT = (this.playT || 0) + dt;
+      if (this.playT >= PEEK_AFTER) { this.peek = { t: 0, rise: 0, leaving: false }; sound.hoop(); }
+    },
+    peekDraw() {
+      const pk = this.peek;
+      if (!pk) return;
+      const r = this.peekRect(), y = r.y - (1 - ease(pk.rise)) * (r.y + r.h + 10);
+      ctx.save();
+      ctx.globalAlpha = 0.08; ctx.fillStyle = C.fg; ctx.fillRect(r.x, y, r.w, r.h);
+      ctx.globalAlpha = 1; ctx.strokeStyle = C.pink; ctx.lineWidth = 2; ctx.strokeRect(r.x, y, r.w, r.h);
+      ctx.fillStyle = C.pink; ctx.font = font(18); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("words?", r.x + r.w / 2, y + r.h / 2 + 1);
+      ctx.restore();
+    },
+    // ---- spelling by accident: letters lined up on the floor that spell a word glow, then the word game slides in
+    spellWatch(dt) {
+      if (this.spelled) {
+        this.spelled.t += dt;
+        if (this.spelled.t > 1.1 && !this.spelled.started) { this.spelled.started = true; this.startWords(); }
+        if (this.spelled.t > 2) this.spelled = null;
+        return;
+      }
+      if (this.wg || this.beat || this.build || this.freeze || this.inGame() || this.mode !== 0) return;
+      if (performance.now() < (this.wordsCooldownUntil || 0)) return;
+      this.watchT = (this.watchT || 0) + dt;
+      if (this.watchT < 0.25) return;
+      this.watchT = 0;
+      // resting letters from your name, upright or upside down, read left to right as they sit
+      // (typed letters don't count, or typing "buckner" would spell "buck")
+      const level = (b) => { const a = Math.abs(Math.atan2(Math.sin(b.angle), Math.cos(b.angle))); return a < 0.35 || a > Math.PI - 0.35; };
+      const L = this.bodies.filter((b) => !b.extra && !b.dance && b !== this.drag && b.speed < 0.3 && b.angularSpeed < 0.03 && level(b)).map((b) => {
+        const k = inkOf(b.ch), w = k.w * b.fs / 100, h = k.h * b.fs / 100;
+        return { b, ch: b.ch, left: b.position.x - w / 2, right: b.position.x + w / 2, bottom: b.position.y + h / 2, h, fs: b.fs };
+      }).sort((a, b) => a.left - b.left);
+      // chains of letters sitting side by side on the same line
+      const chains = [];
+      for (const l of L) {
+        const c = chains.find((ch) => {
+          const last = ch[ch.length - 1], gap = l.left - last.right, big = Math.max(l.fs, last.fs);
+          return Math.abs(l.bottom - last.bottom) < Math.max(l.h, last.h) * 0.3 && gap > -big * 0.15 && gap < big * 0.45;
+        });
+        if (c) c.push(l); else chains.push([l]);
+      }
+      let found = null;
+      for (const ch of chains) {
+        for (let len = ch.length; len >= SPELL_MIN && !found; len--) {
+          for (let i = 0; i + len <= ch.length; i++) {
+            const word = ch.slice(i, i + len).map((l) => l.ch).join("");
+            // only counts if you moved at least one of its letters (the name falling in order can spell "buck" by itself)
+            const moved = ch.slice(i, i + len).some((l) => (l.b.touchedAt || 0) > (this.collapsedAt || 0));
+            if (moved && WORDS.has(word)) { found = { word, letters: ch.slice(i, i + len) }; break; }
+          }
+        }
+        if (found) break;
+      }
+      // it has to stay spelled for a moment, so a passing jumble doesn't count
+      const key = found ? found.letters.map((l) => l.b.id).join(",") : "";
+      if (!found || key !== this.spellKey) { this.spellKey = key; this.spellHold = 0; return; }
+      this.spellHold += 0.25;
+      if (this.spellHold < 0.5) return;
+      const xs = found.letters.map((l) => (l.left + l.right) / 2), tops = found.letters.map((l) => l.bottom - l.h);
+      this.spelled = { word: found.word, bodies: found.letters.map((l) => l.b), x: (Math.min(...xs) + Math.max(...xs)) / 2, y: Math.min(...tops) - 16, t: 0 };
+      this.spellKey = ""; this.spellHold = 0;
+      sound.settle();
+    },
+    // ---- word game: drag letters onto a shelf to spell words before the clock runs out
+    startWords() {
+      if (cur !== this || !this.ok || this.wg || this.inGame()) return;
+      const M = window.Matter;
+      if (this.hoop) this.hoopRemove();
+      if (this.beat) this.stopBeat();
+      if (this.state !== "loose") this.collapse({ x: W / 2, y: -99999 });
+      // clear away typed letters, emoji and popped pieces, so only the real letters are in play
+      const extras = this.bodies.filter((b) => b.extra);
+      this.bodies = this.bodies.filter((b) => !b.extra);
+      for (const b of extras) {
+        M.Composite.remove(this.engine.world, b);
+        this.ghosts.push({ ch: b.ch, fs: b.fs, oxu: b.oxu || 0, oyu: b.oyu || 0, x: b.position.x, y: b.position.y, r: b.angle, vx: (Math.random() - 0.5) * 30, vy: -20 - Math.random() * 50, vr: (Math.random() - 0.5) * 0.8 });
+      }
+      for (const b of this.bodies) { b.dance = null; b.collisionFilter.group = 0; if (b.grow) { M.Body.scale(b, 1 / b.grow, 1 / b.grow); b.fs /= b.grow; b.grow = 0; b.taps = 0; } }
+      const slotW = Math.min(this.unit * 1.5, (W * 0.86) / SHELF_SLOTS);
+      this.wg = {
+        game: "waiting", t: WORD_GAME_SECONDS, score: 0, found: new Set(), best: "", rounds: 1,
+        shelf: [], slotW, x0: W / 2 - (slotW * SHELF_SLOTS) / 2, y: Math.max(H * 0.2, slotW * 1.6),
+        rise: 0, leaving: false, shake: 0, bursts: [],
+      };
+      clearTimeout(this.announceT);
+      hint.textContent = "type or drag letters onto the shelf. enter to score.";
+      sound.hoop();
+    },
+    onShelf(p, slack = 0.7) {
+      const g = this.wg;
+      return !!g && Math.abs(p.y - g.y) < g.slotW * slack && p.x > g.x0 - 8 && p.x < g.x0 + g.slotW * SHELF_SLOTS + 8;
+    },
+    shelfSlotAt(p) { return Math.floor((p.x - this.wg.x0) / this.wg.slotW); },
+    slotX(k) { return this.wg.x0 + this.wg.slotW * (k + 0.5); },
+    typeToShelf(ch) {
+      const g = this.wg;
+      if (!g || g.game === "over" || !/^[a-z]$/.test(ch)) return;
+      const flying = this.bodies.filter((b) => b.fly).length;
+      if (g.shelf.length + flying >= SHELF_SLOTS) return;
+      const target = { x: this.slotX(g.shelf.length + flying), y: g.y };
+      const pick = this.bodies
+        .filter((b) => b.ch === ch && !b.fly && b !== this.drag && !(b.away > 0))
+        .sort((a, b) => Math.hypot(a.position.x - target.x, a.position.y - target.y) - Math.hypot(b.position.x - target.x, b.position.y - target.y))[0];
+      if (!pick) {
+        g.shake = 0.35;
+        g.bursts.push({ t: 0, text: "no more " + ch + "'s", miss: true });
+        return;
+      }
+      if (pick.dance) { pick.dance = null; pick.collisionFilter.group = 0; }
+      this.flySeq = (this.flySeq || 0) + 1;
+      pick.fly = { t: 0, sx: pick.position.x, sy: pick.position.y, sa: pick.angle, seq: this.flySeq };
+      pick.collisionFilter.mask = 0;
+    },
+    // letters floating up to the shelf after being typed; they land in the order they were typed
+    flyStep(dt) {
+      const g = this.wg, M = window.Matter;
+      if (!g) return;
+      // in the order they were typed
+      const fliers = this.bodies.filter((b) => b.fly).sort((a, b) => a.fly.seq - b.fly.seq);
+      fliers.forEach((b, i) => {
+        const f = b.fly;
+        f.t = Math.min(1, f.t + dt / 0.3);
+        const k = ease(f.t), tx = this.slotX(g.shelf.length + i), ty = g.y;
+        M.Body.setPosition(b, { x: f.sx + (tx - f.sx) * k, y: f.sy + (ty - f.sy) * k - Math.sin(Math.PI * f.t) * 40 });
+        M.Body.setAngle(b, f.sa * (1 - k)); M.Body.setVelocity(b, { x: 0, y: 0 });
+      });
+      for (const b of fliers) {
+        if (b.fly.t < 1 || fliers.find((x) => x.fly) !== b) continue;
+        b.fly = null; b.collisionFilter.mask = 0xffff;
+        M.Body.setPosition(b, { x: this.slotX(g.shelf.length), y: g.y });
+        this.putOnShelf(b);
+      }
+    },
+    putOnShelf(b) {
+      const g = this.wg, M = window.Matter;
+      const k = clamp(Math.round((b.position.x - g.x0) / g.slotW - 0.5), 0, g.shelf.length);
+      g.shelf.splice(k, 0, b);
+      M.Composite.remove(this.engine.world, b);
+      this.bodies = this.bodies.filter((x) => x !== b);
+      if (g.game === "waiting") g.game = "playing";
+      sound.last = -1; sound.hit(0.4, 40, this.slotX(k));
+    },
+    takeFromShelf(k) {
+      const g = this.wg, M = window.Matter, b = g.shelf.splice(k, 1)[0];
+      M.Body.setPosition(b, { x: this.slotX(k), y: g.y + g.slotW * 0.9 });
+      M.Body.setVelocity(b, { x: 0, y: 0 }); M.Body.setAngle(b, 0);
+      b.collisionFilter.mask = 0xffff;
+      M.Composite.add(this.engine.world, b);
+      this.bodies.push(b);
+      return b;
+    },
+    // send the shelf's letters back into play with a little hop
+    emptyShelf(pop) {
+      const g = this.wg, M = window.Matter;
+      g.shelf.forEach((b, k) => {
+        M.Body.setPosition(b, { x: this.slotX(k), y: g.y + g.slotW * 0.6 });
+        M.Body.setAngle(b, 0);
+        M.Body.setVelocity(b, pop ? { x: (Math.random() - 0.5) * 8, y: -6 - Math.random() * 6 } : { x: 0, y: 1 });
+        b.collisionFilter.mask = 0xffff;
+        M.Composite.add(this.engine.world, b);
+        this.bodies.push(b);
+      });
+      g.shelf = [];
+    },
+    cashIn() {
+      const g = this.wg;
+      if (!g || g.game === "over") return;
+      const word = g.shelf.map((b) => b.ch).join("");
+      const cx = W / 2;
+      if (!word) return;
+      if (!WORDS.has(word) || g.found.has(word)) {
+        g.shake = 0.4;
+        g.bursts.push({ t: 0, text: g.found.has(word) ? "already found" : word.length < 3 ? "too short" : "not a word", miss: true });
+        sound.bwomp(cx);
+        return;
+      }
+      const pts = WORD_POINTS[Math.min(word.length, WORD_POINTS.length - 1)];
+      g.score += pts; g.found.add(word);
+      if (word.length > g.best.length) g.best = word;
+      g.bursts.push({ t: 0, text: "+" + pts + " " + word });
+      sound.pop(cx);
+      this.emptyShelf(true);
+    },
+    landFliers() { for (const b of this.bodies) if (b.fly) { b.fly = null; b.collisionFilter.mask = 0xffff; } },
+    wordsEnd() {
+      const g = this.wg;
+      g.game = "over";
+      this.landFliers();
+      this.emptyShelf(false);
+      let best = 0;
+      try { best = Number(localStorage.getItem("bio-toys-words-best")) || 0; } catch (e) {}
+      const isNew = g.score > best;
+      if (isNew) { try { localStorage.setItem("bio-toys-words-best", String(g.score)); } catch (e) {} }
+      hoopScore.textContent = g.score;
+      hoopSub.textContent = "points in " + WORD_GAME_SECONDS + " seconds" + (g.best ? " \u00b7 longest word: " + g.best : "");
+      hoopBest.textContent = isNew && g.score > 0 ? "new best" : "best: " + Math.max(best, g.score);
+      hoopBest.classList.toggle("is-new", isNew && g.score > 0);
+      this.lastRound(g.rounds);
+      hoopCard.hidden = false;
+      sound.buzzer();
+      requestAnimationFrame(() => (hoopAgain.hidden ? hoopDone : hoopAgain).focus());
+    },
+    // after the last round of a game, the end card only offers "done"
+    lastRound(rounds) {
+      const last = rounds >= MAX_ROUNDS;
+      hoopAgain.hidden = last;
+      if (last) hoopBest.textContent += " \u00b7 that's it for now";
+    },
+    wordsAgain() {
+      const g = this.wg;
+      if (g.rounds >= MAX_ROUNDS) return;
+      g.rounds += 1;
+      Object.assign(g, { game: "waiting", t: WORD_GAME_SECONDS, score: 0, found: new Set(), best: "", bursts: [] });
+      hint.textContent = "type or drag letters onto the shelf. enter to score.";
+    },
+    wordsQuit() {
+      this.wordsCooldownUntil = performance.now() + SPELL_COOLDOWN * 1000;
+      if (!this.wg) return;
+      this.landFliers();
+      this.emptyShelf(false);
+      this.wg.leaving = true; this.wg.game = "done";
+      hoopCard.hidden = true;
+      hint.textContent = this.hint;
+    },
+    // Enter scores, Backspace takes the last letter back off, Esc quits
+    ctrlKey(k) {
+      const g = this.wg;
+      if (!g || g.game === "over") return;
+      if (k === "Enter") this.cashIn();
+      else if (k === "Backspace" && g.shelf.length) this.takeFromShelf(g.shelf.length - 1);
+      else if (k === "Escape") this.wordsQuit();
+    },
+    wgStep(dt) {
+      const g = this.wg;
+      if (!g) return;
+      if (g.leaving) { g.rise -= dt / 0.4; if (g.rise <= 0) { this.wg = null; return; } }
+      else g.rise = Math.min(1, g.rise + dt / 0.5);
+      g.shake = Math.max(0, g.shake - dt);
+      for (const b of g.bursts) b.t += dt;
+      g.bursts = g.bursts.filter((b) => b.t < SCORE_TEXT_SECONDS);
+      if (g.game === "playing" || g.game === "over") this.idle = 0;
+      if (g.game === "playing") {
+        const before = Math.ceil(g.t);
+        g.t -= dt;
+        if (Math.ceil(g.t) < before && before <= 5 && g.t > 0) sound.tick();
+        if (g.t <= 0) { g.t = 0; this.wordsEnd(); }
+      }
+    },
+    wgDraw() {
+      const g = this.wg;
+      if (!g || this.state !== "loose") return;
+      const off = -(1 - ease(clamp(g.rise, 0, 1))) * (g.y + g.slotW * 2);
+      const shake = g.shake > 0 ? Math.sin(g.shake * 60) * 6 * (g.shake / 0.4) : 0;
+      const word = g.shelf.map((b) => b.ch).join("");
+      const valid = WORDS.has(word) && !g.found.has(word);
+      const w = g.slotW * SHELF_SLOTS, x0 = g.x0 + shake, y = g.y + off, h = g.slotW * 1.1;
+      ctx.save();
+      // the shelf, its slots, and a score and clock above it
+      ctx.globalAlpha = 0.07; ctx.fillStyle = C.fg; ctx.fillRect(x0, y - h / 2, w, h);
+      ctx.globalAlpha = 1; ctx.strokeStyle = valid ? C.pink : C.line; ctx.lineWidth = valid ? 2 : 1.5;
+      ctx.strokeRect(x0, y - h / 2, w, h);
+      ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+      for (let k = 0; k < SHELF_SLOTS; k++) {
+        const sx = x0 + g.slotW * (k + 0.5);
+        ctx.beginPath(); ctx.moveTo(sx - g.slotW * 0.3, y + h * 0.32); ctx.lineTo(sx + g.slotW * 0.3, y + h * 0.32); ctx.stroke();
+      }
+      g.shelf.forEach((b, k) => drawGlyph(b.ch, x0 + g.slotW * (k + 0.5), y - h * 0.04, 0, g.slotW * 0.8, valid ? C.pink : C.fg));
+      ctx.font = '12px "DM Mono", ui-monospace, Menlo, monospace'; ctx.textBaseline = "bottom";
+      ctx.textAlign = "left"; ctx.fillStyle = C.fg; ctx.fillText(String(g.score) + (g.score === 1 ? " point" : " points"), x0, y - h / 2 - 6);
+      const late = g.game === "playing" && g.t <= 5;
+      ctx.textAlign = "right"; ctx.fillStyle = late ? C.pink : C.fg;
+      ctx.font = font(late ? 22 : 17);
+      ctx.fillText(":" + String(Math.ceil(g.t)).padStart(2, "0"), x0 + w, y - h / 2 - 4);
+      // time left, draining from right to left along the top edge of the shelf
+      ctx.fillStyle = late ? C.pink : C.sea;
+      ctx.fillRect(x0, y - h / 2 - 2, w * (g.t / WORD_GAME_SECONDS), 3);
+      ctx.font = '12px "DM Mono", ui-monospace, Menlo, monospace';
+      if (valid) { ctx.textAlign = "center"; ctx.fillStyle = C.pink; ctx.fillText("click to score", x0 + w / 2, y - h / 2 - 6); }
+      // "+4 smile", "not a word" and the like, under the shelf
+      ctx.textAlign = "center"; ctx.textBaseline = "top";
+      for (const b of g.bursts) {
+        ctx.globalAlpha = clamp((SCORE_TEXT_SECONDS - b.t) / 0.7, 0, 1);
+        ctx.fillStyle = b.miss ? C.muted : C.pink;
+        ctx.font = b.miss ? '13px "DM Mono", ui-monospace, Menlo, monospace' : font(22);
+        ctx.fillText(b.text, x0 + w / 2, y + h / 2 + 8 + ease(clamp(b.t / 0.5, 0, 1)) * 10);
+      }
+      ctx.restore();
+    },
+    // ---- basketball: a hoop rises after a few throws; drop letters through the rim
+    inGame() { return !!this.hoop && (this.hoop.game === "playing" || this.hoop.game === "over"); },
+    onThrow() {
+      if (this.wg) return;
+      if (this.state !== "loose") return;
+      if (!this.hoop) {
+        this.throws += 1;
+        if (this.throws >= this.throwsNeeded) this.hoopShow();
+      } else if (this.hoop.game === "waiting" && this.hoop.rise >= 1 && !this.hoop.leaving) {
+        this.hoop.game = "playing";
+      }
+    },
+    hoopShow() {
+      const M = window.Matter;
+      const rimW = clamp(this.unit * 2.6, 72, 130), cx = W - 16 - rimW * 0.8, y = H * 0.42;
+      const rims = [-1, 1].map((sgn) => M.Bodies.circle(cx + sgn * rimW / 2, y + H, 4, { isStatic: true, restitution: 0.5 }));
+      rims.forEach((r) => { r.isRim = true; });
+      M.Composite.add(this.engine.world, rims);
+      // beyond this distance from the rim, a throw is worth 3
+      const r3 = Math.max(rimW * 3, W * 0.42);
+      this.hoop = { cx, y, rimW, r3, rims, rise: 0, off: H, leaving: false, swish: 0, bursts: [], game: "waiting", t: HOOP_SECONDS, score: 0, rounds: 1 };
+      clearTimeout(this.announceT);
+      hint.textContent = "a hoop! the clock starts on your next throw.";
+      sound.hoop();
+      this.announceT = setTimeout(() => { if (cur === this) hint.textContent = this.hint; }, 3500);
+    },
+    hoopRemove() {
+      if (!this.hoop) return;
+      window.Matter.Composite.remove(this.engine.world, this.hoop.rims);
+      this.hoop = null; this.throws = 0; this.throwsNeeded = randInt(...HOOP_AGAIN_THROWS); hoopCard.hidden = true;
+    },
+    hoopStep(dt) {
+      const h = this.hoop, M = window.Matter;
+      if (!h) return;
+      if (h.leaving) {
+        h.rise -= dt / 0.5;
+        if (h.rise <= 0) { this.hoopRemove(); return; }
+      } else h.rise = Math.min(1, h.rise + dt / 0.7);
+      h.off = (1 - ease(clamp(h.rise, 0, 1))) * H;
+      h.rims.forEach((r, i) => M.Body.setPosition(r, { x: h.cx + (i ? 1 : -1) * h.rimW / 2, y: h.y + h.off }));
+      h.swish = Math.max(0, h.swish - dt);
+      for (const b of h.bursts) b.t += dt;
+      h.bursts = h.bursts.filter((b) => b.t < SCORE_TEXT_SECONDS);
+      if (h.game === "playing") {
+        const before = Math.ceil(h.t);
+        h.t -= dt;
+        if (Math.ceil(h.t) < before && before <= 5 && h.t > 0) sound.tick();
+        if (h.t <= 0) { h.t = 0; h.game = "over"; this.hoopEnd(); }
+      }
+      if (this.inGame()) this.idle = 0;
+      if (h.rise < 1 || h.game === "over") return;
+      // a basket is a letter crossing the rim line going down, between the two sides of the rim
+      const now = performance.now();
+      for (const b of this.bodies) {
+        if (b.away > 0 || b.entering) continue;
+        if (b.positionPrev.y < h.y && b.position.y >= h.y && Math.abs(b.position.x - h.cx) < h.rimW / 2 - 3 && now - (b.scoredAt || 0) > 800) {
+          b.scoredAt = now; h.swish = 0.45;
+          // only a letter you let go of counts, once per throw
+          // a letter that went out a hatch can take a while to float back down, so it gets longer
+          const thrown = b !== this.drag && b.releaseAt && (now - b.releaseAt < 6000 || b.viaChute);
+          if (h.game !== "playing" || !thrown) continue;
+          b.releaseAt = 0;
+          const chuted = b.viaChute; b.viaChute = false;
+          const dunk = !chuted && Math.abs(b.releaseX - h.cx) < h.rimW * 0.9 && b.releaseY < h.y + h.rimW;
+          if (dunk) { h.bursts.push({ t: 0, text: "no dunks", label: "" }); sound.bwomp(h.cx); continue; }
+          const three = Math.hypot(b.releaseX - h.cx, b.releaseY - h.y) > h.r3;
+          const pts = three ? 3 : 2, label = [three ? "3-pointer" : "", chuted ? "by parachute" : ""].filter(Boolean).join(" + ");
+          h.score += pts; sound.basket(h.cx, three);
+          h.bursts.push({ t: 0, text: "+" + pts, label });
+        }
+      }
+    },
+    hoopEnd() {
+      const h = this.hoop;
+      let best = 0;
+      try { best = Number(localStorage.getItem("bio-toys-hoop-points")) || 0; } catch (e) {}
+      const isNew = h.score > best;
+      if (isNew) { try { localStorage.setItem("bio-toys-hoop-points", String(h.score)); } catch (e) {} }
+      hoopScore.textContent = h.score;
+      hoopSub.textContent = "points in " + HOOP_SECONDS + " seconds";
+      hoopBest.textContent = isNew && h.score > 0 ? "new best" : "best: " + Math.max(best, h.score);
+      hoopBest.classList.toggle("is-new", isNew && h.score > 0);
+      this.lastRound(h.rounds);
+      hoopCard.hidden = false;
+      sound.buzzer();
+      requestAnimationFrame(() => (hoopAgain.hidden ? hoopDone : hoopAgain).focus());
+    },
+    hoopDraw(front) {
+      const h = this.hoop;
+      if (!h || this.state !== "loose") return;
+      const { cx, y, rimW } = h, ry = rimW * 0.12;
+      ctx.save();
+      ctx.translate(0, h.off);
+      if (!front) {
+        // the three-point line: a faint dashed arc around the rim
+        if (!h.leaving) {
+          ctx.save();
+          ctx.setLineDash([5, 7]); ctx.strokeStyle = C.muted; ctx.globalAlpha = 0.45; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(cx, y, h.r3, Math.PI * 0.5, Math.PI * 1.5); ctx.stroke();
+          ctx.setLineDash([]); ctx.globalAlpha = 0.7; ctx.fillStyle = C.muted;
+          ctx.font = '11px "DM Mono", ui-monospace, Menlo, monospace'; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+          ctx.fillText("3", cx - h.r3 + 6, y);
+          ctx.restore();
+        }
+        // pole, backboard with its target square, the score, then the back half of the rim
+        ctx.fillStyle = C.line; ctx.fillRect(cx - 3, y + rimW * 0.2, 6, H + 20 - y);
+        const bx = cx - rimW * 0.75, by = y - rimW * 0.95, bw = rimW * 1.5, bh = rimW * 1.15;
+        ctx.globalAlpha = 0.07; ctx.fillStyle = C.fg; ctx.fillRect(bx, by, bw, bh);
+        ctx.globalAlpha = 0.55; ctx.strokeStyle = C.fg; ctx.lineWidth = 2; ctx.strokeRect(bx, by, bw, bh);
+        ctx.globalAlpha = 1; ctx.strokeStyle = C.pink; ctx.strokeRect(cx - rimW * 0.3, y - rimW * 0.45, rimW * 0.6, rimW * 0.42);
+        ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = C.fg; ctx.font = font(rimW * 0.42);
+        ctx.fillText(String(h.score), cx, by - rimW * 0.22);
+        const late = h.game === "playing" && h.t <= 5;
+        ctx.fillStyle = late ? C.pink : C.fg;
+        ctx.font = font(late ? 20 : 15);
+        ctx.textAlign = "right";
+        ctx.fillText(":" + String(Math.ceil(h.t)).padStart(2, "0"), bx + bw, by - 8);
+        ctx.textAlign = "center";
+        // time left, draining along the top edge of the backboard
+        ctx.fillStyle = late ? C.pink : C.sea;
+        ctx.fillRect(bx, by - 4, bw * (h.t / HOOP_SECONDS), 4);
+        ctx.strokeStyle = C.pink; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.ellipse(cx, y, rimW / 2, ry, 0, Math.PI, Math.PI * 2); ctx.stroke();
+      } else {
+        // the net hangs in front of the letters and kicks back on a swish
+        const s = h.swish > 0 ? Math.sin((1 - h.swish / 0.45) * Math.PI) : 0;
+        const n = 6, netH = rimW * 0.7 + s * rimW * 0.22, squeeze = 1 - 0.25 * s;
+        const top = [], bot = [];
+        for (let i = 0; i <= n; i++) {
+          const u = i / n;
+          top.push({ x: cx - rimW / 2 + rimW * u, y: y + Math.sin(Math.PI * u) * ry });
+          bot.push({ x: cx + (-rimW * 0.3 + rimW * 0.6 * u) * squeeze, y: y + netH });
+        }
+        ctx.strokeStyle = C.fg; ctx.globalAlpha = 0.5; ctx.lineWidth = 1.2;
+        for (let i = 0; i < n; i++) {
+          ctx.beginPath(); ctx.moveTo(top[i].x, top[i].y); ctx.lineTo(bot[i + 1].x, bot[i + 1].y); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(top[i + 1].x, top[i + 1].y); ctx.lineTo(bot[i].x, bot[i].y); ctx.stroke();
+        }
+        ctx.beginPath(); ctx.moveTo(top[0].x, top[0].y); ctx.lineTo(bot[0].x, bot[0].y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(top[n].x, top[n].y); ctx.lineTo(bot[n].x, bot[n].y); ctx.stroke();
+        ctx.globalAlpha = 1; ctx.strokeStyle = C.pink; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.ellipse(cx, y, rimW / 2, ry, 0, 0, Math.PI); ctx.stroke();
+        ctx.textAlign = "center";
+        for (const b of h.bursts) {
+          // rise briefly, hold still long enough to read, then fade over the last 0.7s
+          const by = y - rimW * 0.1 - ease(clamp(b.t / 0.5, 0, 1)) * rimW * 0.3, miss = b.text === "no dunks";
+          ctx.globalAlpha = clamp((SCORE_TEXT_SECONDS - b.t) / 0.7, 0, 1);
+          ctx.fillStyle = miss ? C.muted : C.pink;
+          ctx.font = miss ? '13px "DM Mono", ui-monospace, Menlo, monospace' : font(24);
+          ctx.fillText(b.text, cx, by);
+          if (b.label) {
+            ctx.fillStyle = C.fg; ctx.font = '11px "DM Mono", ui-monospace, Menlo, monospace';
+            // the hoop sits near the right edge, so keep a long label on screen
+            const lw = ctx.measureText(b.label).width;
+            ctx.fillText(b.label, Math.min(cx, W - 8 - lw / 2), by + 14);
+          }
+        }
+        ctx.globalAlpha = 1;
+      }
+      ctx.restore();
+    },
+    openLink(word) {
+      const url = PILE_URLS[word];
+      if (url) {
+        if (url.startsWith("mailto:")) window.location.href = url;
+        else window.open(url, "_blank", "noopener");
+        return;
+      }
+      clearTimeout(this.announceT);
+      hint.textContent = word + ": this will open your " + word + " once you give me the link.";
+      this.announceT = setTimeout(() => { if (cur === this) hint.textContent = this.hint; }, 3500);
+    },
+    showLinks() {
+      if (cur !== this || !this.ok || (this.state === "set" && this.isLast())) return;
+      if (this.loaded === this.stage && !this.isLast()) {
+        const next = this.make(this.stage + 1, true);
+        window.Matter.Composite.add(this.engine.world, next);
+        this.bodies.push(...next);
+        this.loaded = this.stage + 1;
+      }
+      this.gather();
+    },
+    isLast() { return this.stage === PILE_STAGES.length - 1; },
+    linkAt(p) {
+      if (this.state !== "set" || this.linkShow < 1) return null;
+      return this.links.find((k) => p.x > k.x0 - 8 && p.x < k.x1 + 8 && Math.abs(p.y - k.y) < k.fs * 0.6);
+    },
+    setPlugs() {
+      const closed = this.flip || this.zero > 0;
+      for (const pl of this.plugs) pl.collisionFilter.category = closed ? 2 : 0;
+    },
+    setFlip() {
+      const M = window.Matter;
+      this.setPlugs();
+      this.engine.gravity.y = this.zero > 0 ? 0 : this.flip ? -1 : 1;
+      if (this.zero > 0) {
+        // weightless: everything lifts off the floor at its own pace and tumbles slowly
+        const up = this.flip ? -1 : 1;
+        for (const b of this.bodies) {
+          if (b.chute) continue;
+          b.frictionAir = 0.008; b.restitution = 0.8;
+          M.Body.setVelocity(b, { x: (Math.random() - 0.5) * 1.5, y: up * (0.4 + Math.random() * 2.4) });
+          M.Body.setAngularVelocity(b, (Math.random() - 0.5) * 0.06);
+        }
+      } else {
+        // each letter gets its own air drag, so they peel away one by one and not as a flat sheet
+        for (const b of this.bodies) {
+          if (b.chute) continue;
+          b.frictionAir = 0.004 + Math.pow(Math.random(), 2) * 0.09; b.restitution = 0.35;
+          M.Body.setAngularVelocity(b, (Math.random() - 0.5) * 0.15);
+        }
+      }
+      for (const b of this.bodies) if (b.position.y < 20) M.Body.setPosition(b, { x: b.position.x, y: 20 + Math.random() * 40 });
+    },
+    collapse(p) {
+      const M = window.Matter;
+      sound.tumble(clamp(p.x, 0, W));
+      this.collapsedAt = performance.now();
+      // knocking over the standing name: the links turn into real letters that float up while the name falls
+      // through them, all in slow motion
+      if (this.state === "set" && (this.linkShow ?? 1) > 0.5) {
+        const L = this.linkLayout;
+        for (const g of L.glyphs) {
+          const k = inkOf(g.ch), b = this.letterBody(g.ch, L.fs, g.x + k.ox * L.fs / 100, g.y + k.oy * L.fs / 100);
+          b.extra = true; b.floater = true; b.hover = true; b.hoverT = 1.4 + Math.random() * 1.2;
+          M.Body.setDensity(b, 0.0006); // a bit lighter than the name, so falling letters knock them about
+          b.collisionFilter.mask = 0xffff & ~2 & ~4; // they fall out through the floor (and never catch on the ceiling)
+          M.Composite.add(this.engine.world, b);
+          this.bodies.push(b);
+        }
+        this.linkShow = 0;
+        this.slowmo = { t: 0 };
+      }
+      this.linkDir = -1;
+      this.state = "loose"; this.idle = 0;
+      const mine = this.bodies.slice();
+      // the next message rains in the first time this one is knocked over
+      if (this.loaded === this.stage && !this.isLast()) {
+        const next = this.make(this.stage + 1, true);
+        M.Composite.add(this.engine.world, next);
+        this.bodies.push(...next);
+        this.loaded = this.stage + 1;
+      }
+      for (const b of mine) {
+        const dx = b.position.x - p.x, dy = b.position.y - p.y, d = Math.hypot(dx, dy) || 1;
+        const f = 9 * Math.exp(-d / 180);
+        M.Body.setVelocity(b, { x: dx / d * f + (Math.random() - 0.5), y: dy / d * f + (Math.random() - 0.5) });
+        M.Body.setAngularVelocity(b, (Math.random() - 0.5) * 0.12);
+      }
+    },
+    gather() {
+      const M = window.Matter;
+      sound.settle();
+      this.linkDir = 1;
+      this.slowmo = null; this.engine.timing.timeScale = 1;
+      if (this.hoop) this.hoopRemove();
+      this.state = "gather";
+      // anything that is not part of the next message lets go and drifts off the top
+      const adv = this.loaded > this.stage, old = this.stage;
+      const out = this.bodies.filter((b) => b.extra || (adv && b.stage === old));
+      this.bodies = this.bodies.filter((b) => !out.includes(b));
+      for (const b of out) {
+        M.Composite.remove(this.engine.world, b);
+        this.ghosts.push({ ch: b.ch, fs: b.fs, oxu: b.oxu || 0, oyu: b.oyu || 0, x: b.position.x, y: b.position.y, r: b.angle, vx: (Math.random() - 0.5) * 30, vy: -20 - Math.random() * 50, vr: (Math.random() - 0.5) * 0.8 });
+      }
+      if (adv) this.stage = this.loaded;
+      for (const b of this.bodies) {
+        if (b.grow) { M.Body.scale(b, 1 / b.grow, 1 / b.grow); b.fs /= b.grow; b.grow = 0; }
+        b.taps = 0; b.chute = false; b.away = 0; b.viaChute = false; b.dance = null; b.collisionFilter.group = 0; b.frictionAir = 0.012; b.entering = false; b.collisionFilter.mask = 0xffff;
+      }
+    },
+    down(p) {
+      if (!this.ok) return;
+      this.p = p; this.held = false; this.idle = 0; this.press = null; this.shelfPress = null; this.peekPress = false;
+      // on the shelf: a click scores the word, a drag pulls a letter back off
+      if (this.wg && this.wg.game !== "over" && this.onShelf(p)) { this.shelfPress = { slot: this.shelfSlotAt(p) }; return; }
+      // a click on a link (while the links are showing) opens it, on release
+      if (this.linkAt(p)) return;
+      // the "words?" tab: handled on release
+      if (this.onPeek(p)) { this.peekPress = true; return; }
+      const hit = this.hitAt(p);
+      if (hit) {
+        // the poke that knocks the sentence over should not also count toward popping a letter
+        this.knocked = this.state !== "loose";
+        if (this.knocked) this.collapse(p);
+        this.drag = hit;
+        if (hit.dance) { hit.dance = null; hit.collisionFilter.group = 0; }
+        else if (!this.wg && this.beat) {
+          // only while a beat is playing: hold a letter still and it becomes a dancer
+          clearTimeout(this.danceHold);
+          this.holdLetter = hit; this.holdStart = performance.now();
+          this.danceHold = setTimeout(() => {
+            this.holdLetter = null;
+            if (this.drag !== hit || !this.beat || this.bodies.filter((b) => b.dance).length >= MAX_DANCERS) return;
+            hit.dance = { t: 0, x: hit.position.x, y: hit.position.y, px: hit.position.x, py: hit.position.y, held: true };
+            this.rings.push({ x: hit.position.x, y: hit.position.y, t: 0, size: 0.4 });
+            sound.sparkle(hit.position.x);
+          }, DANCE_HOLD * 1000);
+        }
+      } else {
+        clearTimeout(this.hold);
+        this.hold = setTimeout(() => {
+          this.held = true;
+          if (this.beat) { this.startBuild(p); return; }
+          this.mode = (this.mode + 1) % 3;
+          this.flip = this.mode === 1; this.zero = this.mode === 2 ? Infinity : 0;
+          if (this.state !== "loose") this.collapse({ x: W / 2, y: [0, H, H / 2][this.mode] });
+          this.setFlip();
+          sound.gravity(this.mode);
+          // name the new state in the hint bar for a moment
+          clearTimeout(this.announceT);
+          hint.textContent = GRAVITY_MODES[this.mode];
+          this.announceT = setTimeout(() => { if (cur === this) hint.textContent = this.hint; }, 2500);
+        }, 550);
+      }
+    },
+    move(p, dx, dy, down) {
+      // only clicks, drags and typing count as touching; just moving the mouse over the page doesn't
+      this.p = p;
+      if (down) this.idle = 0;
+      if (down && Math.hypot(dx, dy) > 3) clearTimeout(this.hold);
+      if (down && Math.hypot(p.x - ptr.sx, p.y - ptr.sy) > DANCE_DRIFT) { clearTimeout(this.danceHold); this.holdLetter = null; }
+      if (down && this.press && ptr.moved) { this.collapse(p); this.drag = this.press; this.press = null; }
+      if (down && this.shelfPress && ptr.moved) {
+        const k = this.shelfPress.slot; this.shelfPress = null;
+        if (k >= 0 && k < this.wg.shelf.length) this.drag = this.takeFromShelf(k);
+      }
+      cv.style.cursor = this.linkAt(p) ? "pointer" : "grab";
+    },
+    up() {
+      clearTimeout(this.hold); clearTimeout(this.danceHold); this.holdLetter = null;
+      if (this.build) { this.drop(); return; }
+      // a new dancer starts dancing where you let go of it
+      if (this.drag && this.drag.dance) {
+        Object.assign(this.drag.dance, { held: false, t: 0, x: this.drag.position.x, y: this.drag.position.y, px: this.drag.position.x, py: this.drag.position.y });
+        this.drag = null;
+        return;
+      }
+      // remember the throw, so only a letter you flung yourself can escape through a hatch
+      if (this.drag && this.wg && this.wg.game !== "over" && this.onShelf(this.drag.position, 0.9) && this.wg.shelf.length < SHELF_SLOTS) {
+        this.putOnShelf(this.drag);
+        this.drag = null;
+        return;
+      }
+      if (this.drag) {
+        const b = this.drag;
+        b.thrownAt = performance.now(); b.touchedAt = b.thrownAt;
+        // where it left your hand decides dunks, 2s and 3s
+        b.releaseAt = b.thrownAt; b.releaseX = b.position.x; b.releaseY = b.position.y; b.viaChute = false;
+        if (b.speed > 6) { sound.whoosh(b.speed, b.position.x); this.onThrow(); }
+      }
+      this.drag = null;
+    },
+    tap(p) {
+      if (!this.ok || this.held) return;
+      if (this.peekPress) { this.peekPress = false; if (this.onPeek(p)) { this.peek.leaving = true; this.startWords(); } return; }
+      if (this.wg) {
+        // a click on the shelf scores what's on it; letters can't be swelled during the game
+        if (this.shelfPress) { this.shelfPress = null; this.cashIn(); }
+        return;
+      }
+      if (this.state === "set" && this.isLast()) {
+        const k = this.linkAt(p);
+        if (k) { this.openLink(k.word); return; }
+      }
+      // while the beat is going, a lone click on empty space stops it. It waits a beat first in case the click is half of a
+      // double-tap (those just play along), and ignores clicks in the first second so overshooting the count is fine.
+      if (this.beat) {
+        clearTimeout(this.beatStopT); this.knocked = false;
+        // a click right on a letter plays its note (and swells it); exact hits only, so empty space is easy to find
+        const letter = window.Matter.Query.point(this.bodies, p)[0];
+        if (letter) { this.poke(letter); return; }
+        if (performance.now() / 1000 - this.beat.startedAt < 1) return;
+        this.beatStopT = setTimeout(() => { if (cur === this && this.beat) this.stopBeat(); }, 360);
+        return;
+      }
+      const hit = this.hitAt(p);
+      if (hit) { if (!this.knocked) this.poke(hit); this.knocked = false; return; }
+      // a click on empty space knocks a standing sentence over; once the letters are loose it does nothing,
+      // and they put themselves back after PILE_SELF_FIX seconds left alone
+      if (this.state === "set") this.collapse(p);
+    },
+    step(dt) {
+      if (!this.ok) return;
+      const M = window.Matter;
+      this.engine.gravity.x = tilt.x * (this.zero > 0 ? 0.5 : 1);
+      // tip the phone hard while the sentence is standing and it topples over
+      if (this.state === "set") {
+        this.tipT = Math.abs(tilt.x) > 0.55 ? (this.tipT || 0) + dt : 0;
+        if (this.tipT > 0.4) { this.tipT = 0; this.collapse({ x: tilt.x > 0 ? -50 : W + 50, y: H / 2 }); }
+      }
+      if (Math.abs(tilt.x) > 0.3) this.idle = 0;
+      for (const g of this.ghosts) { g.vy -= 90 * dt; g.x += g.vx * dt; g.y += g.vy * dt; g.r += g.vr * dt; }
+      this.ghosts = this.ghosts.filter((g) => g.y > -120);
+      for (const r of this.rings) r.t += dt;
+      // the links line floats off the top while you play (0.9s) and drifts back down when the name reassembles (1.4s)
+      this.linkShow = clamp((this.linkShow ?? 1) + (this.linkDir > 0 ? dt / 1.4 : -dt / 0.9), 0, 1);
+      this.rings = this.rings.filter((r) => r.t < 0.6);
+      if (this.beat && this.state !== "loose") this.stopBeat();
+      if (this.freeze) {
+        this.freeze.t -= dt;
+        if (this.freeze.t <= 0) { const f = this.freeze; this.freeze = null; this.boom(f); }
+        return;
+      }
+      if (this.state === "loose") this.beatStep(dt);
+      if (this.state === "loose") {
+        if (this.drag) {
+          const b = this.drag;
+          M.Body.setVelocity(b, { x: (this.p.x - b.position.x) * 0.35, y: (this.p.y - b.position.y) * 0.35 });
+        }
+        if (this.slowmo) {
+          // each slow-motion moment can set its own speed and timing; the knock-over uses the defaults
+          const sm = this.slowmo, t = (sm.t += dt), lo = sm.scale ?? SLOW_SCALE, hold = sm.hold ?? SLOW_HOLD, ramp = sm.ramp ?? SLOW_RAMP;
+          const sc = t < hold ? lo : lo + (1 - lo) * ease(Math.min(1, (t - hold) / ramp));
+          this.engine.timing.timeScale = sc;
+          if (sc >= 1) this.slowmo = null;
+        }
+        M.Engine.update(this.engine, Math.min(dt * 1000, 33));
+        const floatedAway = [];
+        for (const b of this.bodies) {
+          if (b.floater) {
+            // link letters hang where they were until a falling name letter knocks them (or they let go on their own);
+            // after that it's plain gravity, and they drop out through the bottom of the screen
+            if (b.hover) {
+              b.hoverT -= dt;
+              M.Body.applyForce(b, b.position, { x: 0, y: -b.mass * 0.001 * this.engine.gravity.y });
+              M.Body.setVelocity(b, { x: b.velocity.x * 0.9, y: b.velocity.y * 0.9 });
+              if (b.hoverT <= 0) b.hover = false;
+            }
+            if (b.position.y > H + b.fs * 2 || b.position.y < -b.fs * 3) floatedAway.push(b);
+            continue;
+          }
+          if (b.away > 0) {
+            // off the top of the screen, still rising, then coming back down near where it left
+            b.away -= dt;
+            M.Body.setPosition(b, { x: b.awayX, y: -400 }); M.Body.setVelocity(b, { x: 0, y: 0 });
+            if (b.away <= 0) {
+              b.away = 0;
+              const x = clamp(b.awayX + (Math.random() - 0.5) * 80, 40, W - 40);
+              M.Body.setPosition(b, { x, y: -30 }); M.Body.setAngle(b, 0);
+              b.collisionFilter.mask = 0xffff & ~2;
+              b.frictionAir = PARACHUTE_DRAG; b.chute = true; b.chuteT = 0;
+              sound.chute(x);
+            }
+            continue;
+          }
+          if (b.entering && b.position.y > b.fs) { b.entering = false; b.collisionFilter.mask = 0xffff; }
+          // with gravity off, anything still arriving from above keeps drifting in
+          if (b.entering && this.zero > 0 && !b.chute && b.velocity.y < 2) M.Body.setVelocity(b, { x: b.velocity.x, y: 2 });
+          if (b.waving !== undefined) {
+            b.waving += dt;
+            M.Body.setAngle(b, Math.sin(b.waving * 7) * 0.35);
+            if (b.waving > 3) { b.frictionAir = 0.012; b.waving = undefined; }
+          }
+          if (b.chute) {
+            b.chuteT += dt;
+            b.sway = Math.sin(b.chuteT * 1.7 + b.id) * 0.2 + clamp(-b.velocity.x * 0.06, -0.3, 0.3);
+            M.Body.setAngle(b, b.sway); M.Body.setAngularVelocity(b, 0);
+            M.Body.setVelocity(b, { x: b.velocity.x * 0.97 + Math.cos(b.chuteT * 1.7 + b.id) * 0.12, y: this.zero > 0 ? Math.max(b.velocity.y, 1) : b.velocity.y });
+            const landed = b.chuteT > 1 && b.position.y > H * 0.3 && Math.abs(b.velocity.y) < 0.3;
+            if (landed || b.chuteT > 9) { b.chute = false; b.frictionAir = 0.012; b.deflate = 0; b.side = Math.random() < 0.5 ? -1 : 1; }
+          }
+          if (b.deflate !== undefined) {
+            b.deflate += dt;
+            if (b.deflate > 0.8) b.deflate = undefined;
+          }
+          if (!b.entering && b.position.y < -b.fs * 0.6) {
+            const thrown = b === this.drag || performance.now() - (b.thrownAt || 0) < 2000;
+            if (this.flip || this.zero > 0) { M.Body.setPosition(b, { x: b.position.x, y: b.fs }); M.Body.setVelocity(b, { x: b.velocity.x, y: 0 }); continue; }
+            if (!thrown) {
+              // knocked up there by accident: bounce off the hatch like the rest of the ceiling
+              M.Body.setPosition(b, { x: b.position.x, y: b.fs * 0.6 });
+              M.Body.setVelocity(b, { x: b.velocity.x, y: Math.abs(b.velocity.y) * 0.35 });
+              continue;
+            }
+            // out through a gap: the harder the throw, the longer it is gone before the parachute brings it back
+            if (b === this.drag) this.drag = null;
+            b.away = clamp(0.9 + Math.abs(b.velocity.y) * 0.06, 1.1, 2.6);
+            b.viaChute = true; // still your throw: if it floats down through the hoop untouched, it scores
+            b.awayX = b.position.x;
+            b.entering = true; b.collisionFilter.mask = 0;
+          }
+        }
+        if (floatedAway.length) {
+          for (const b of floatedAway) M.Composite.remove(this.engine.world, b);
+          this.bodies = this.bodies.filter((b) => !floatedAway.includes(b));
+        }
+        // left alone long enough, the pile puts itself back together
+        this.idle += dt;
+        this.hoopStep(dt);
+        const wait = this.loaded > this.stage ? PILE_FIRST_FIX : PILE_SELF_FIX;
+        this.wgStep(dt);
+        this.spellWatch(dt);
+        this.peekStep(dt);
+        this.flyStep(dt);
+        this.buildStep(dt);
+        this.danceStep(dt);
+        if (this.idle > wait && !ptr.down && !this.inGame() && !this.wg) this.gather();
+      } else if (this.state === "gather") {
+        let far = 0;
+        const k = 1 - Math.pow(1 - 0.045, dt * 60);
+        for (const b of this.bodies) {
+          const a = Math.atan2(Math.sin(b.angle), Math.cos(b.angle));
+          M.Body.setPosition(b, { x: b.position.x + (b.hx - b.position.x) * k, y: b.position.y + (b.hy - b.position.y) * k });
+          M.Body.setAngle(b, a * (1 - k));
+          M.Body.setVelocity(b, { x: 0, y: 0 }); M.Body.setAngularVelocity(b, 0);
+          far = Math.max(far, Math.abs(b.hx - b.position.x) + Math.abs(b.hy - b.position.y) + Math.abs(a) * 20);
+        }
+        if (far < 0.6) {
+          for (const b of this.bodies) { M.Body.setPosition(b, { x: b.hx, y: b.hy }); M.Body.setAngle(b, 0); }
+          this.state = "set";
+        }
+      }
+    },
+    draw() {
+      if (!this.ok) { drawGlyph("physics library did not load", W / 2, H / 2, 0, 16, C.muted); return; }
+      if (this.quake > 0) {
+        const m = this.quake * 14;
+        ctx.translate((Math.random() - 0.5) * m, (Math.random() - 0.5) * m);
+        this.quake = Math.max(0, this.quake - 0.025);
+      }
+      ctx.globalAlpha = 0.55;
+      for (const g of this.ghosts) drawGlyph(g.ch, g.x, g.y, g.r, g.fs, C.fg, g.oxu * g.fs, g.oyu * g.fs);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = C.line; ctx.lineWidth = 2; ctx.lineCap = "round";
+      for (const g of this.gaps) {
+        for (const x of [g.x0, g.x1]) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 7); ctx.stroke(); }
+      }
+      // a faint ring spreads from every thump, so the beat is visible with the sound off
+      for (const r of this.rings) {
+        if (r.t < 0) continue;
+        ctx.globalAlpha = (1 - r.t / 0.6) * 0.35; ctx.strokeStyle = C.pink; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(r.x, r.y, 16 + r.t * 260 * (r.size || 1), 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      // while the beat runs, a small step grid on the left shows each row's drum, its 8 steps and the playhead
+      if (this.beat) {
+        const b = this.beat;
+        ctx.save();
+        ctx.font = '11px "DM Mono", ui-monospace, Menlo, monospace'; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+        [["hat", H / 6], ["snare", H / 2], ["kick", (H * 5) / 6]].forEach(([kind, y]) => {
+          const L = b.layers[kind];
+          ctx.globalAlpha = L ? 0.9 : 0.4; ctx.fillStyle = C.muted;
+          ctx.fillText(kind, 16, y);
+          for (let k = 0; k < 8; k++) {
+            const x = 64 + k * 11 + (k >= 4 ? 4 : 0), on = L && L.steps.has(k);
+            ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2);
+            if (on) { ctx.fillStyle = C.pink; ctx.fill(); } else { ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.stroke(); }
+            if (k === b.step) { ctx.strokeStyle = C.fg; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI * 2); ctx.stroke(); }
+          }
+        });
+        ctx.restore();
+      }
+      this.hoopDraw(false);
+      for (const b of this.bodies) {
+        if (this.state === "loose" && (b.chute || b.deflate !== undefined)) this.drawChute(b);
+        if (b.dance) { if (b.dance.held) this.drawDancer(b); continue; }
+        // after a drop the letters stay coloured, changing colour on every kick
+        const tint = this.dropSec ? [C.pink, C.sun, C.sea][((this.dropColor || 0) + b.id) % 3] : C.fg;
+        const glow = this.spelled && this.spelled.bodies.includes(b);
+        drawGlyph(b.ch, b.position.x, b.position.y, b.angle, b.fs, b === this.drag || glow ? C.pink : tint, (b.oxu || 0) * b.fs, (b.oyu || 0) * b.fs);
+      }
+      this.drawDancers();
+      this.peekDraw();
+      if (this.spelled) {
+        const sp = this.spelled;
+        ctx.save();
+        ctx.globalAlpha = clamp(2 - sp.t, 0, 1); ctx.fillStyle = C.pink; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+        ctx.font = font(20);
+        ctx.fillText("you spelled " + sp.word + "!", clamp(sp.x, 90, W - 90), sp.y - ease(clamp(sp.t / 0.6, 0, 1)) * 14);
+        ctx.restore();
+      }
+      // holding a letter in DJ mode: a ring fills around it, and when it closes the letter starts dancing
+      const hl = this.holdLetter;
+      if (hl && this.drag === hl && !hl.dance) {
+        const prog = (performance.now() - this.holdStart) / (DANCE_HOLD * 1000);
+        if (prog > 0.15) {
+          const r = Math.max(hl.fs * 0.6, 22);
+          ctx.save(); ctx.strokeStyle = C.pink; ctx.lineWidth = 3; ctx.lineCap = "round";
+          ctx.beginPath(); ctx.arc(hl.position.x, hl.position.y, r, -Math.PI / 2, -Math.PI / 2 + Math.min(1, prog) * Math.PI * 2); ctx.stroke();
+          ctx.restore();
+        }
+      }
+      this.hoopDraw(true);
+      this.wgDraw();
+      if (this.dropTint > 0) this.dropTint = Math.max(0, this.dropTint - 0.06);
+      if (this.freeze) { ctx.globalAlpha = 0.35; ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+      // the drop's flash
+      if (this.flash > 0) {
+        ctx.globalAlpha = this.flash; ctx.fillStyle = C.pink; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
+        this.flash = Math.max(0, this.flash - 0.03);
+      }
+      if (this.drag && this.wg) drawGlyph(this.drag.ch, this.drag.position.x, this.drag.position.y, this.drag.angle, this.drag.fs, C.pink, (this.drag.oxu || 0) * this.drag.fs, (this.drag.oyu || 0) * this.drag.fs);
+      // the links line: each letter rises off the top at its own speed, and comes back down the same way
+      const ls = this.linkShow ?? 1;
+      if (ls > 0) {
+        const L = this.linkLayout;
+        L.glyphs.forEach((g, i) => {
+          const off = (1 - ease(ls)) * (g.y + L.fs * 2) * this.linkSpeed[i];
+          drawGlyph(g.ch, g.x, g.y - off, (1 - ls) * this.linkSpin[i], L.fs, C.fg);
+        });
+        if (ls === 1 && this.state === "set") {
+          ctx.strokeStyle = C.pink; ctx.lineWidth = 3; ctx.lineCap = "round";
+          for (const k of this.links) {
+            ctx.beginPath(); ctx.moveTo(k.x0, k.y + k.fs * 0.52); ctx.lineTo(k.x1, k.y + k.fs * 0.52); ctx.stroke();
+          }
+        }
+      }
+    },
+  };
+
+  // ---- shell --------------------------------------------------------------
+  const protos = { pile };
+  let cur = null;
+  const tabs = [...document.querySelectorAll(".tabs button")];
+  const hoopCard = document.getElementById("hoopCard"), hoopScore = document.getElementById("hoopScore");
+  const hoopSub = document.getElementById("hoopSub"), hoopBest = document.getElementById("hoopBest");
+  const hoopAgain = document.getElementById("hoopAgain"), hoopDone = document.getElementById("hoopDone");
+  hoopAgain.addEventListener("click", () => {
+    const h = pile.hoop;
+    hoopCard.hidden = true;
+    if (pile.wg) { pile.wordsAgain(); return; }
+    if (h && h.rounds < MAX_ROUNDS) { h.rounds += 1; h.game = "waiting"; h.t = HOOP_SECONDS; h.score = 0; hint.textContent = "the clock starts on your next throw."; }
+  });
+  hoopDone.addEventListener("click", () => {
+    hoopCard.hidden = true;
+    if (pile.wg) { pile.wordsQuit(); return; }
+    if (pile.hoop) { pile.hoop.game = "done"; pile.hoop.leaving = true; }
+    hint.textContent = pile.hint;
+  });
+  const soundBtn = document.getElementById("soundBtn");
+  const paintSound = () => { soundBtn.textContent = sound.muted ? "sound off" : "sound on"; soundBtn.setAttribute("aria-pressed", String(sound.muted)); };
+  paintSound();
+  soundBtn.addEventListener("click", () => {
+    sound.muted = !sound.muted;
+    try { localStorage.setItem("bio-toys-muted", sound.muted ? "1" : "0"); } catch (e) {}
+    if (!sound.muted) sound.unlock();
+    paintSound();
+    soundBtn.blur();
+  });
+  const show = (k) => {
+    if (!protos[k]) k = "pile";
+    hoopCard.hidden = true;
+    cur = protos[k];
+    cur.init();
+    hint.textContent = cur.hint;
+    tabs.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.k === k)));
+  };
+  tabs.forEach((b) => b.addEventListener("click", () => show(b.dataset.k)));
+
+  const resize = () => {
+    const r = stage.getBoundingClientRect();
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = Math.max(r.width, 50); H = Math.max(r.height, 50);
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    if (cur) cur.init(true);
+  };
+
+  const ptr = { down: false, x: 0, y: 0, sx: 0, sy: 0, moved: false, t: 0 };
+  let lastTap = null;
+  const pos = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  const firstGesture = (e) => {
+    sound.unlock();
+    // iPhones only share tilt after asking, and only from a tap
+    if (e && e.pointerType === "touch" && !tilt.asked && window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === "function") {
+      tilt.asked = true;
+      DeviceOrientationEvent.requestPermission().catch(() => {});
+    }
+  };
+  cv.addEventListener("pointerdown", (e) => {
+    firstGesture(e);
+    const p = pos(e);
+    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+    Object.assign(ptr, { down: true, x: p.x, y: p.y, sx: p.x, sy: p.y, moved: false, t: performance.now() });
+    if (cur.down) cur.down(p);
+  });
+  cv.addEventListener("pointermove", (e) => {
+    const p = pos(e), dx = p.x - ptr.x, dy = p.y - ptr.y;
+    ptr.x = p.x; ptr.y = p.y;
+    if (ptr.down && Math.hypot(p.x - ptr.sx, p.y - ptr.sy) > 10) ptr.moved = true;
+    if (cur.move) cur.move(p, dx, dy, ptr.down);
+  });
+  const release = (e) => {
+    if (!ptr.down) return;
+    ptr.down = false;
+    const p = pos(e), now = performance.now();
+    if (cur.up) cur.up(p);
+    if (ptr.moved || now - ptr.t > 300) return;
+    if (lastTap && now - lastTap.t < 340 && Math.hypot(p.x - lastTap.x, p.y - lastTap.y) < 34) {
+      lastTap = null;
+      // toys without a double-tap action still count every tap
+      if (cur.dbl) cur.dbl(p); else if (cur.tap) cur.tap(p);
+    } else {
+      lastTap = { t: now, x: p.x, y: p.y };
+      if (cur.tap) cur.tap(p);
+    }
+  };
+  window.addEventListener("keydown", (e) => {
+    if ((e.key === "Enter" || e.key === "Backspace" || e.key === "Escape") && cur && cur.ctrlKey && cur.wg) {
+      if (e.target && e.target.closest && e.target.closest("button")) return;
+      e.preventDefault(); cur.ctrlKey(e.key); return;
+    }
+    if (e.metaKey || e.ctrlKey || e.altKey || e.key.length !== 1 || !cur || !cur.key) return;
+    firstGesture();
+    cur.key(e.key);
+  });
+  cv.addEventListener("pointerup", release);
+  // a long press shouldn't open the browser's own menu (it would cancel holding a letter)
+  cv.addEventListener("contextmenu", (e) => e.preventDefault());
+  cv.addEventListener("pointercancel", release);
+
+  let prev = 0;
+  const frame = (now) => {
+    const dt = Math.min((now - prev) / 1000 || 0.016, 0.05);
+    prev = now;
+    tilt.x += (tilt.target - tilt.x) * Math.min(1, dt * 8);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    cur.step(dt);
+    cur.draw();
+    requestAnimationFrame(frame);
+  };
+
+  const start = () => {
+    readColors();
+    resize();
+    show((location.hash || "").slice(1));
+    new ResizeObserver(resize).observe(stage);
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", readColors);
+    new MutationObserver(readColors).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    requestAnimationFrame(frame);
+  };
+  let started = false;
+  const once = () => { if (!started) { started = true; start(); } };
+  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(once);
+  setTimeout(once, 1500);
+})();
+</script>
+</body>
+</html>
