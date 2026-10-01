@@ -816,7 +816,7 @@
       const power = { kick: 1, snare: 0.55, hat: 0.28 }[kind];
       if (kind === "kick") sound.thud(p.x); else if (kind === "snare") sound.snare(p.x); else sound.hat(p.x, 0.12);
       let size = power;
-      if (!auto && !this.beat && !this.wg) {
+      if (!auto && !this.beat && !this.wg && !this.inGame()) {
         // after a double-tap thump, single taps keep thumping for a moment; keep going for a bar and the page
         // picks up your tempo and carries on by itself. Each ring is a little bigger, so it feels like it's building.
         const now = performance.now() / 1000;
@@ -857,6 +857,8 @@
         layers: { kick: { steps: new Set([0, 2, 4, 6]), x, y }, snare: null, hat: null },
       };
       this.thumps = [];
+      // DJ mode and basketball don't mix: a hoop that's waiting for a game slides away
+      if (this.hoop) { this.hoop.leaving = true; hoopCard.hidden = true; }
       // DJ mode always plays with normal, right-side-up gravity
       if (this.mode !== 0) { this.mode = 0; this.flip = false; this.zero = 0; this.setFlip(); this.slowmo = { t: 0, ...FALL_SLOWMO }; }
       clearTimeout(this.announceT);
@@ -1599,7 +1601,7 @@
     // ---- basketball: a hoop rises after a few throws; drop letters through the rim
     inGame() { return !!this.hoop && (this.hoop.game === "playing" || this.hoop.game === "over"); },
     onThrow() {
-      if (this.wg) return;
+      if (this.wg || this.beat) return;
       if (this.state !== "loose") return;
       if (!this.hoop) {
         this.throws += 1;
