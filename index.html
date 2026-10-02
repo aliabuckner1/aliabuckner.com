@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Alia Buckner: resume, email and LinkedIn. Poke the letters.">
+<meta name="description" content="Alia Buckner: resume, email, LinkedIn – but fun">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://aliabuckner.com/">
 <meta property="og:title" content="Alia Buckner">
-<meta property="og:description" content="Resume, email and LinkedIn. Poke the letters.">
+<meta property="og:description" content="Resume, email, LinkedIn – but fun">
 <meta property="og:image" content="https://aliabuckner.com/preview.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -97,6 +97,26 @@
   }
   .hoop-actions button.primary { background: var(--pink); border-color: var(--pink); color: var(--bg); }
   .hoop-actions button:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
+  /* the shared scoreboard on the end card */
+  .board { width: 100%; min-width: 220px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .board[hidden], .board-form[hidden] { display: none; }
+  .board-title { margin: 0 0 6px; color: var(--muted); }
+  .board-form { margin-bottom: 10px; }
+  .board-form label { display: block; margin-bottom: 6px; color: var(--pink); }
+  .board-row { display: flex; gap: 6px; justify-content: center; }
+  .board-row input {
+    width: 12ch; font: inherit; font-size: 16px; /* 16px stops iPhones zooming in on the box */
+    color: var(--fg); background: none; border: 1px solid var(--line); border-radius: 4px; padding: 5px 8px;
+  }
+  .board-row input:focus-visible { outline: 2px solid var(--pink); outline-offset: 1px; }
+  .board-row button { font: inherit; color: var(--bg); background: var(--pink); border: 1px solid var(--pink); border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+  .board-row button:disabled { opacity: 0.5; cursor: default; }
+  .board-list { list-style: none; margin: 0; padding: 0; font-variant-numeric: tabular-nums; }
+  .board-list li { display: flex; gap: 10px; padding: 2px 0; }
+  .board-list .rank { width: 1.6em; text-align: right; color: var(--muted); }
+  .board-list .who { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .board-list li.you { color: var(--pink); }
+  .board-note { margin: 6px 0 0; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -106,6 +126,18 @@
     <p class="hoop-score" id="hoopScore">0</p>
     <p class="hoop-sub" id="hoopSub">points in 20 seconds</p>
     <p class="hoop-best" id="hoopBest"></p>
+    <div class="board" id="board" hidden>
+      <form class="board-form" id="boardForm" hidden>
+        <label for="boardName">you made the board!</label>
+        <div class="board-row">
+          <input id="boardName" maxlength="10" placeholder="first name" autocomplete="given-name" autocapitalize="words" spellcheck="false" enterkeyhint="done">
+          <button type="submit">add</button>
+        </div>
+      </form>
+      <p class="board-title">top 10</p>
+      <ol class="board-list" id="boardList"></ol>
+      <p class="board-note" id="boardNote"></p>
+    </div>
     <div class="hoop-actions">
       <button type="button" class="primary" id="hoopAgain">play again</button>
       <button type="button" id="hoopDone">done</button>
@@ -174,9 +206,13 @@
   const WORDS = new Set("ace air ale arc are ark ban bar bin bra bun cab can car cub cue cur ear elk era ice ilk ink ire kin lab lie nab nib nil ran rib rub rue run urn able acne acre akin area aria aura back bail bake bale bane bank bare bark barn beak bean bear beau beck bike bile blue blur bran brie buck bulk bunk burn cake cane care clan club clue crab crib cube curb cure curl earl earn kale kiln lace lack lain lair lake lane lark leak lean liar lice lick lien lieu like line link lira lube luck lure lurk nail narc near neck nice nick nuke race rack rail rain rake rank real rein rice rick rile rink rube ruin rule rune ulna aback alien alike ankle arena baker banal biker black blank blare bleak blink bluer brace brain brake break brick brine brink cabal cabin cable canal clank clean clear clerk clink clunk crane crank creak cruel incur lance learn liner lunar nicer relic renal ulcer uncle urban urine aerial arcane backer banker bicker buckle bunker burial carnal eclair lancer linear nebula neural nickel nuclei racial unable unlike unreal urinal balance blacker blinker bracken buckler caliber calibre clinker clunker cranial luckier nuclear unclear balancer barnacle incurable".split(" "));
   const DROP_FREEZE = 0.4; // seconds of silence, everything frozen, between letting go and the boom
   // in DJ mode the hint bar cycles through what you can do
+  // phones and tablets can't type or press enter, so instructions that mention keys have a touch version
+  const TOUCH = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+  const say = (computer, phone) => (TOUCH ? phone : computer);
+  const WORD_HINT = say("type or click letters to send them up. enter to score.", "tap letters to send them up. tap the shelf to score.");
   const DJ_HINTS = [
     "double-tap high, mid or low to add drums",
-    "tap or type letters to play notes",
+    say("click or type letters to play notes", "tap letters to play notes"),
     "hold a letter still to make it dance",
     "hold empty space for 3 seconds to drop the beat",
   ];
@@ -311,6 +347,8 @@
           fb.gain.value = 0.38; tone.type = "lowpass"; tone.frequency.value = 2200; wet.gain.value = 0.35;
           this.echo.connect(tone); tone.connect(fb); fb.connect(this.echo); tone.connect(wet); wet.connect(this.out);
           this.ac = ac;
+          // lets the sound button notice when something else (music, a call) takes the sound away
+          ac.onstatechange = () => { if (this.onState) this.onState(ac.state); };
         } catch (e) { this.ac = null; }
       }
       if (this.ac && this.ac.state === "suspended") this.ac.resume().catch(() => {});
@@ -323,6 +361,14 @@
         } catch (e) {}
         if (this.ac.state === "running") this.primed = true;
       }
+    },
+    // a fresh start: after the phone has given the sound to something else (music, a call), the old audio context
+    // won't wake back up properly, so it's swapped for a new one, from inside the tap
+    restart() {
+      const old = this.ac;
+      if (old) { old.onstatechange = null; try { old.close(); } catch (e) {} }
+      this.ac = null; this.primed = false;
+      this.unlock();
     },
     ready() { return !this.muted && this.ac && this.ac.state === "running"; },
     // a destination panned left or right by screen position, feeding both the dry mix and the room
@@ -1177,6 +1223,8 @@
           tx = clamp(d.x + Math.sin((beats / 4) * Math.PI * 2) * dm.w * 0.6, dm.w, W - dm.w);
           ty = standY(dm, 1, bounce(0)); angle = Math.sin((beats / 2) * Math.PI * 2) * 0.22;
         } else if (mode === "pair") {
+          // two dance side by side, arms free; holding hands starts when a third joins
+          arms = "free";
           const cx = clamp(avgX, gap, W - gap), s = k ? 1 : -1;
           off = k * 0.5;
           tx = cx + s * gap * 0.5; ty = standY(dm, 1, bounce(off));
@@ -1269,7 +1317,7 @@
       const order = (this.danceOrder || []).filter((b) => D.includes(b));
       const mode = D[0].dance.mode;
       // held hands: a sagging line from each dancer's hand to the next one's
-      if (order.length > 1 && mode !== "solo" && mode !== "march") {
+      if (order.length > 2 && mode !== "solo" && mode !== "pair" && mode !== "march") {
         const pairs = order.slice(0, -1).map((b, k) => [b, order[k + 1]]);
         if (mode === "circle") pairs.push([order[order.length - 1], order[0]]);
         ctx.save(); ctx.lineCap = "round";
@@ -1455,8 +1503,13 @@
     spellWatch(dt) {
       if (this.spelled) {
         this.spelled.t += dt;
-        if (this.spelled.t > 1.1 && !this.spelled.started) { this.spelled.started = true; this.startWords(); }
-        if (this.spelled.t > 2) this.spelled = null;
+        // the spelled letters glow for a moment, then float up onto the shelf, so it's clear why the game started
+        if (this.spelled.t > 1.8 && !this.spelled.started) {
+          this.spelled.started = true;
+          this.startWords();
+          this.prefillShelf(this.spelled.word, this.spelled.bodies);
+        }
+        if (this.spelled.t > 3.6) this.spelled = null;
         return;
       }
       if (this.wg || this.beat || this.build || this.freeze || this.inGame() || this.mode !== 0) return;
@@ -1537,7 +1590,7 @@
         rise: 0, leaving: false, shake: 0, bursts: [],
       };
       clearTimeout(this.announceT);
-      hint.textContent = "type or drag letters onto the shelf. enter to score.";
+      hint.textContent = WORD_HINT;
       sound.hoop();
     },
     onShelf(p, slack = 0.7) {
@@ -1563,14 +1616,14 @@
       this.sendToShelf(pick);
     },
     // a letter floats up into the next free slot on the shelf (typed, or tapped on a phone)
-    sendToShelf(b) {
+    sendToShelf(b, { dur = 0.3, wait = 0 } = {}) {
       const g = this.wg;
       if (!g || g.game === "over" || b.fly || b.extra) return;
       if (g.shelf.length + this.bodies.filter((x) => x.fly).length >= SHELF_SLOTS) { g.shake = 0.35; return; }
       if (b.dance) { b.dance = null; b.collisionFilter.group = 0; }
       if (this.drag === b) this.drag = null;
       this.flySeq = (this.flySeq || 0) + 1;
-      b.fly = { t: 0, sx: b.position.x, sy: b.position.y, sa: b.angle, seq: this.flySeq };
+      b.fly = { t: 0, sx: b.position.x, sy: b.position.y, sa: b.angle, seq: this.flySeq, dur, wait };
       b.collisionFilter.mask = 0;
     },
     // letters floating up to the shelf after being typed; they land in the order they were typed
@@ -1581,7 +1634,9 @@
       const fliers = this.bodies.filter((b) => b.fly).sort((a, b) => a.fly.seq - b.fly.seq);
       fliers.forEach((b, i) => {
         const f = b.fly;
-        f.t = Math.min(1, f.t + dt / 0.3);
+        // a staggered letter holds its place until its turn
+        if (f.wait > 0) { f.wait -= dt; M.Body.setPosition(b, { x: f.sx, y: f.sy }); M.Body.setVelocity(b, { x: 0, y: 0 }); return; }
+        f.t = Math.min(1, f.t + dt / (f.dur || 0.3));
         const k = ease(f.t), tx = this.slotX(g.shelf.length + i), ty = g.y;
         M.Body.setPosition(b, { x: f.sx + (tx - f.sx) * k, y: f.sy + (ty - f.sy) * k - Math.sin(Math.PI * f.t) * 40 });
         M.Body.setAngle(b, f.sa * (1 - k)); M.Body.setVelocity(b, { x: 0, y: 0 });
@@ -1593,13 +1648,27 @@
         this.putOnShelf(b);
       }
     },
+    // the word spelled on the floor goes up onto the shelf, one letter after another, ready to score; scoring it starts
+    // the clock. (An upside-down u read as an n sends up the real n, so the shelf spells the word.)
+    prefillShelf(word, bodies) {
+      if (!this.wg) return;
+      const used = new Set(), free = (x) => !used.has(x) && !x.fly && !x.extra && !(x.away > 0) && this.bodies.includes(x);
+      [...word].forEach((ch, i) => {
+        const b = bodies.find((x) => x.ch === ch && free(x)) || this.bodies.find((x) => x.ch === ch && free(x));
+        if (!b) return;
+        used.add(b); b.prefill = true;
+        this.sendToShelf(b, { dur: 0.7, wait: i * 0.25 });
+      });
+      hint.textContent = say("click the shelf or press enter to score it.", "tap the shelf to score it.");
+    },
     putOnShelf(b) {
       const g = this.wg, M = window.Matter;
       const k = clamp(Math.round((b.position.x - g.x0) / g.slotW - 0.5), 0, g.shelf.length);
       g.shelf.splice(k, 0, b);
       M.Composite.remove(this.engine.world, b);
       this.bodies = this.bodies.filter((x) => x !== b);
-      if (g.game === "waiting") g.game = "playing";
+      if (g.game === "waiting" && !b.prefill) g.game = "playing";
+      b.prefill = false;
       sound.last = -1; sound.hit(0.4, 40, this.slotX(k));
     },
     takeFromShelf(k) {
@@ -1642,6 +1711,8 @@
       g.bursts.push({ t: 0, text: "+" + pts + " " + word });
       sound.pop(cx);
       this.emptyShelf(true);
+      // scoring the word you spelled on the floor starts the clock
+      if (g.game === "waiting") { g.game = "playing"; hint.textContent = WORD_HINT; }
     },
     landFliers() { for (const b of this.bodies) if (b.fly) { b.fly = null; b.collisionFilter.mask = 0xffff; } },
     wordsEnd() {
@@ -1659,6 +1730,7 @@
       hoopBest.classList.toggle("is-new", isNew && g.score > 0);
       this.lastRound(g.rounds, WORD_ROUNDS);
       hoopCard.hidden = false;
+      board.show("words", g.score);
       sound.buzzer();
       requestAnimationFrame(() => (hoopAgain.hidden ? hoopDone : hoopAgain).focus());
     },
@@ -1673,7 +1745,7 @@
       if (g.rounds >= WORD_ROUNDS) return;
       g.rounds += 1;
       Object.assign(g, { game: "waiting", t: WORD_GAME_SECONDS, score: 0, found: new Set(), best: "", bursts: [] });
-      hint.textContent = "type or drag letters onto the shelf. enter to score.";
+      hint.textContent = WORD_HINT;
     },
     wordsQuit() {
       this.wordsCooldownUntil = performance.now() + SPELL_COOLDOWN * 1000;
@@ -1737,7 +1809,7 @@
       ctx.fillStyle = late ? C.pink : C.sea;
       ctx.fillRect(x0, y - h / 2 - 2, w * (g.t / WORD_GAME_SECONDS), 3);
       ctx.font = '12px "DM Mono", ui-monospace, Menlo, monospace';
-      if (valid) { ctx.textAlign = "center"; ctx.fillStyle = C.pink; ctx.fillText("click to score", x0 + w / 2, y - h / 2 - 6); }
+      if (valid) { ctx.textAlign = "center"; ctx.fillStyle = C.pink; ctx.fillText(say("click to score", "tap to score"), x0 + w / 2, y - h / 2 - 6); }
       // "+4 smile", "not a word" and the like, under the shelf
       ctx.textAlign = "center"; ctx.textBaseline = "top";
       for (const b of g.bursts) {
@@ -1832,6 +1904,7 @@
       hoopBest.classList.toggle("is-new", isNew && h.score > 0);
       this.lastRound(h.rounds);
       hoopCard.hidden = false;
+      board.show("hoop", h.score);
       sound.buzzer();
       requestAnimationFrame(() => (hoopAgain.hidden ? hoopDone : hoopAgain).focus());
     },
@@ -2341,7 +2414,7 @@
       if (this.spelled) {
         const sp = this.spelled;
         ctx.save();
-        ctx.globalAlpha = clamp(2 - sp.t, 0, 1); ctx.fillStyle = C.pink; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+        ctx.globalAlpha = clamp(3.4 - sp.t, 0, 1); ctx.fillStyle = C.pink; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
         ctx.font = font(20);
         ctx.fillText("you spelled " + sp.word + "!", clamp(sp.x, 90, W - 90), sp.y - ease(clamp(sp.t / 0.6, 0, 1)) * 14);
         ctx.restore();
@@ -2400,6 +2473,62 @@
   const hoopCard = document.getElementById("hoopCard"), hoopScore = document.getElementById("hoopScore");
   const hoopSub = document.getElementById("hoopSub"), hoopBest = document.getElementById("hoopBest");
   const hoopAgain = document.getElementById("hoopAgain"), hoopDone = document.getElementById("hoopDone");
+
+  // ---- the shared scoreboard: the top 10 for each game, kept by a small Cloudflare Worker (scoreboard/ in the repo)
+  const BOARD_API = "https://aliabuckner-scoreboard.aliabuckner-scoreboard.workers.dev/scores";
+  const BOARD_SIZE = 10;
+  const boardEl = document.getElementById("board"), boardForm = document.getElementById("boardForm");
+  const boardName = document.getElementById("boardName"), boardList = document.getElementById("boardList");
+  const boardNote = document.getElementById("boardNote"), boardAdd = boardForm.querySelector("button");
+  const board = {
+    game: null, score: 0, seq: 0,
+    async show(game, score) {
+      const seq = ++this.seq;
+      this.game = game; this.score = score;
+      boardEl.hidden = false; boardForm.hidden = true; boardList.replaceChildren(); boardNote.textContent = "loading the board…";
+      try {
+        const { top } = await (await fetch(BOARD_API + "?game=" + game)).json();
+        if (seq !== this.seq) return;
+        this.render(top);
+        // a score makes the board if there's room, or if it beats the last one on it
+        const makes = score > 0 && (top.length < BOARD_SIZE || score > top[top.length - 1].score);
+        boardForm.hidden = !makes;
+        boardNote.textContent = top.length || makes ? "" : "no scores yet";
+        if (makes) { try { boardName.value = localStorage.getItem("bio-toys-name") || ""; } catch (e) {} }
+      } catch (e) {
+        if (seq === this.seq) boardNote.textContent = "couldn't reach the scoreboard";
+      }
+    },
+    render(top, youId) {
+      boardList.replaceChildren(...top.map((row, i) => {
+        const li = document.createElement("li");
+        if (row.id === youId) li.className = "you";
+        for (const [cls, text] of [["rank", i + 1 + "."], ["who", row.name], ["pts", row.score]]) {
+          const span = document.createElement("span"); span.className = cls; span.textContent = text; li.append(span);
+        }
+        return li;
+      }));
+    },
+    async submit() {
+      const name = boardName.value.trim();
+      if (!name) { boardName.focus(); return; }
+      boardAdd.disabled = true; boardNote.textContent = "";
+      try {
+        const res = await fetch(BOARD_API, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ game: this.game, name, score: this.score }) });
+        const data = await res.json();
+        if (!res.ok) { boardNote.textContent = data.error || "couldn't save that"; return; }
+        try { localStorage.setItem("bio-toys-name", name); } catch (e) {}
+        boardForm.hidden = true;
+        boardName.blur();
+        this.render(data.top, data.id);
+      } catch (e) {
+        boardNote.textContent = "couldn't reach the scoreboard";
+      } finally {
+        boardAdd.disabled = false;
+      }
+    },
+  };
+  boardForm.addEventListener("submit", (e) => { e.preventDefault(); board.submit(); });
   hoopAgain.addEventListener("click", () => {
     const h = pile.hoop;
     hoopCard.hidden = true;
@@ -2415,12 +2544,36 @@
   const resetBtn = document.getElementById("resetBtn");
   resetBtn.addEventListener("click", () => { pile.reset(); resetBtn.blur(); });
   const soundBtn = document.getElementById("soundBtn");
-  const paintSound = () => { soundBtn.textContent = sound.muted ? "sound off" : "sound on"; soundBtn.setAttribute("aria-pressed", String(sound.muted)); };
+  // iPhones treat web sound as background noise that the silent switch mutes. Tapping the sound button asks for
+  // video-style sound instead, which plays even on silent (and, like a video, pauses other music); turning sound off
+  // hands the phone back. Before that tap, an iPhone shows "tap for sound".
+  const IOS = /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const canLoud = IOS && "audioSession" in navigator;
+  let loud = false, loudAt = 0, wasInterrupted = false;
+  const setLoud = (on) => { loud = on; loudAt = performance.now(); try { navigator.audioSession.type = on ? "playback" : "ambient"; } catch (e) {} };
+  // if music (or a call) takes over, the page's sound stops: the button goes back to "tap for sound", and the page
+  // goes back to background sound, so the next tap in the game doesn't stop the music again
+  const interrupted = () => {
+    if (!loud || performance.now() - loudAt < 1000) return; // switching modes can blip the state for a moment
+    wasInterrupted = true;
+    setLoud(false);
+    paintSound();
+  };
+  sound.onState = (st) => { if (st !== "running") interrupted(); };
+  if (canLoud) navigator.audioSession.onstatechange = () => { if (navigator.audioSession.state === "interrupted") interrupted(); };
+  const paintSound = () => {
+    soundBtn.textContent = sound.muted ? "sound off" : canLoud && !loud ? "tap for sound" : "sound on";
+    soundBtn.setAttribute("aria-pressed", String(sound.muted));
+  };
   paintSound();
   soundBtn.addEventListener("click", () => {
+    // taking the sound back after music interrupted it needs a fresh audio context; the first time, the old one is fine
+    const takeBack = () => { if (wasInterrupted || (sound.ac && sound.ac.state !== "running")) { wasInterrupted = false; sound.restart(); } else sound.unlock(); };
+    if (canLoud && !loud && !sound.muted) { setLoud(true); takeBack(); paintSound(); soundBtn.blur(); return; }
     sound.muted = !sound.muted;
     try { localStorage.setItem("bio-toys-muted", sound.muted ? "1" : "0"); } catch (e) {}
-    if (!sound.muted) sound.unlock();
+    if (canLoud) setLoud(!sound.muted);
+    if (!sound.muted) { if (canLoud) takeBack(); else sound.unlock(); }
     paintSound();
     soundBtn.blur();
   });
@@ -2496,6 +2649,7 @@
     }
   };
   window.addEventListener("keydown", (e) => {
+    if (e.target && e.target.closest && e.target.closest("input, textarea, select")) return; // typing a name, not playing
     if ((e.key === "Enter" || e.key === "Backspace" || e.key === "Escape") && cur && cur.ctrlKey && cur.wg) {
       if (e.target && e.target.closest && e.target.closest("button")) return;
       e.preventDefault(); cur.ctrlKey(e.key); return;

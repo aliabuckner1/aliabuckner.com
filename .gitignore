@@ -1,3 +1,5 @@
 drafts/
 .DS_Store
 CLAUDE.md
+scoreboard/node_modules/
+scoreboard/.wrangler/
