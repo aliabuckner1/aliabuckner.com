@@ -719,7 +719,7 @@
       this.unit = base * 0.09;
       // the name, big, a little above the middle; the links line under it may run wider so it stays on one line
       const wideW = Math.min(W - 40, 1150) * 0.92;
-      this.layouts = [fit(PILE_STAGES[0], Math.min(W - 40, 880) * 0.92, H * 0.3, base * 0.23, W / 2, H * NAME_Y)];
+      this.layouts = [fit(PILE_STAGES[0], Math.min(W - 40, 810) * 0.92, H * 0.28, base * 0.212, W / 2, H * NAME_Y)];
       const name = this.layouts[0];
       const room = name.fs * 0.13;
       const dy = name.glyphs[DANCER_AT].y; // only the dancer's own line makes room (the name can wrap on a phone)
