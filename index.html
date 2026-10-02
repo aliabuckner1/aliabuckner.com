@@ -658,7 +658,8 @@
 
   // ---- letter pile -----------------------------------------------------
   const pile = {
-    hint: "play around. see what you find.",
+    // the bottom hint waits until the "(go on, give it a poke)" nudge has gone, i.e. after the first knock-over
+    get hint() { return this.poked ? "play around. see what you find." : ""; },
     flip: false, stage: 0,
     init(keep) {
       const M = window.Matter;
@@ -2110,7 +2111,8 @@
     collapse(p) {
       const M = window.Matter;
       sound.tumble(clamp(p.x, 0, W));
-      this.collapsedAt = performance.now(); this.poked = true;
+      this.collapsedAt = performance.now();
+      if (!this.poked) { this.poked = true; if (!hint.textContent) hint.textContent = this.hint; }
       stats.first("knock"); stats.count("knocks");
       // knocking over the standing name: the links turn into real letters that float up while the name falls
       // through them, all in slow motion

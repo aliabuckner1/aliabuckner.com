@@ -10,12 +10,14 @@
   :root {
     --bg: #eef3f5; --card: #ffffff; --fg: #0f2a33; --muted: #5d7780; --line: #d5e1e5; --grid: #e6eef1;
     --bar: #3d93a8; --bar-hover: #2b7a8e; --pink: #e8497a; --sun: #f2b705;
+    --dev-phone: #1a8fb0; --dev-computer: #e8497a; --dev-tablet: #c98500; /* checked for colour-blind separation */
     --sans: "Avenir Next", "Instrument Sans", system-ui, sans-serif; --mono: "DM Mono", ui-monospace, Menlo, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --bg: #0d1f26; --card: #13292f; --fg: #e6f1f2; --muted: #8fa9b0; --line: #24404a; --grid: #1c353d;
       --bar: #5cb8cc; --bar-hover: #86cddc;
+      --dev-phone: #2a94b2; --dev-computer: #e2557f; --dev-tablet: #c08310;
     }
   }
   * { box-sizing: border-box; }
@@ -33,14 +35,21 @@
   .seg button[aria-pressed="true"] { background: var(--fg); color: var(--card); }
   label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); cursor: pointer; }
   .named { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
-  .demo-banner { margin: 0 0 14px; padding: 8px 12px; border-radius: 8px; background: var(--sun); color: #0f2a33; font-size: 13px; }
-  .demo-banner[hidden] { display: none; }
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
   .tile { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
   .tile .v { font-size: 26px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .tile .k { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
-  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+  .grid3 .card { margin-bottom: 0; }
+  /* devices: one bar split by share, with a 2px gap between segments */
+  .split { display: flex; gap: 2px; height: 16px; margin: 4px 0 12px; }
+  .split i { display: block; height: 100%; min-width: 3px; }
+  .split i:first-child { border-radius: 4px 0 0 4px; }
+  .split i:last-child { border-radius: 0 4px 4px 0; }
+  .split i:only-child { border-radius: 4px; }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: baseline; }
+  @media (max-width: 760px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 14px; min-width: 0; margin-bottom: 14px; }
   .grid2 .card { margin-bottom: 0; }
   .scroll { overflow-x: auto; }
@@ -112,10 +121,8 @@
         <button data-days="1">today</button><button data-days="7">7 days</button><button data-days="30" aria-pressed="true">30 days</button><button data-days="0">all</button>
       </div>
       <label class="check"><input type="checkbox" id="labelled"> include my devices</label>
-      <label class="check"><input type="checkbox" id="demo"> show demo data</label>
     </div>
   </header>
-  <p class="demo-banner" id="demoBanner" hidden>showing demo data: made-up visitors, so you can see how the report works. untick "show demo data" for real visitors.</p>
   <p class="named" id="named"></p>
   <div id="body"><p class="msg">loading…</p></div>
 </main>
@@ -128,7 +135,7 @@
   try { if (key) { localStorage.setItem("stats-key", key); history.replaceState(null, "", location.pathname); } else key = localStorage.getItem("stats-key") || ""; } catch (e) {}
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const opts = { days: 30, labelled: false, demo: false };
+  const opts = { days: 30, labelled: false };
   let data = null;
 
   // what each event means, in words; null = not shown on its own in timelines
@@ -292,8 +299,10 @@
     const clicks = visits.flatMap((v) => v.events.filter((e) => e.event === "link").map((e) => ({ e, v }))).sort((a, b) => b.e.ts - a.e.ts);
     const count = (xs) => { const m = new Map(); for (const x of xs) m.set(x, (m.get(x) || 0) + 1); return [...m].sort((a, b) => b[1] - a[1]); };
     const sources = count(people.map((p) => p.ref || "direct / unknown"));
-    const devices = count(people.map((p) => p.device || "?"));
-    const places = count(people.map((p) => p.place || "?")).slice(0, 8);
+    // devices in a fixed order, so each always keeps its colour
+    const DEV = ["phone", "computer", "tablet"];
+    const devices = DEV.map((d) => [d, people.filter((p) => p.device === d).length]).filter(([, v]) => v);
+    const places = count(people.map((p) => p.place || "unknown")).slice(0, 10);
 
     $("body").innerHTML = `
       <div class="tiles">${tiles.map(([v, k]) => `<div class="tile"><div class="v">${esc(v)}</div><div class="k">${esc(k)}</div></div>`).join("")}</div>
@@ -325,9 +334,12 @@
           <td>${p.links.map((l) => `<span class="tag link">${esc(l)}</span>`).join("")}${["dj", "hoop_play", "words_start"].filter((k) => p.did.has(k)).map((k) => `<span class="tag">${{ dj: "dj", hoop_play: "hoop", words_start: "words" }[k]}</span>`).join("")}</td>
           <td>${esc(p.ref || "")}</td><td>${esc([p.place, p.device].filter(Boolean).join(" · "))}</td></tr>`).join("")}
       </table></div></div>
-      <div class="grid2">
-        <div class="card"><h2>where people came from</h2><table>${sources.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="n">${v}</td></tr>`).join("")}</table></div>
-        <div class="card"><h2>devices &amp; places</h2><table>${devices.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="n">${v}</td></tr>`).join("")}${places.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="n">${v}</td></tr>`).join("")}</table></div>
+      <div class="grid3">
+        ${[["where people came from", sources], ["devices", devices], ["places", places]].map(([title, list]) => `
+        <div class="card"><h2>${title}</h2>
+          ${title === "devices" ? `<div class="split" role="img" aria-label="${esc(devices.map(([k, v]) => k + " " + pct(v, n)).join(", "))}">${devices.map(([k, v]) => `<i title="${esc(k)}: ${v} (${pct(v, n)})" style="flex:${v};background:var(--dev-${k})"></i>`).join("")}</div>` : ""}
+          <table><tr><th></th><th class="n">people</th><th class="n">share</th></tr>${list.map(([k, v]) => `
+          <tr><td>${title === "devices" ? `<span class="sw" style="background:var(--dev-${k})"></span>` : ""}${esc(k)}</td><td class="n">${v}</td><td class="n">${pct(v, n)}</td></tr>`).join("")}</table></div>`).join("")}
       </div>`;
 
     drawChart($("chart"), daysList.map((d) => ({ d, v: perDay.get(d).people.size, visits: perDay.get(d).visits })));
@@ -416,7 +428,7 @@
   let loading = 0;
   async function load() {
     if (!key) { showLogin(""); return; }
-    const q = `?days=${opts.days}&labelled=${opts.labelled ? 1 : 0}&demo=${opts.demo ? 1 : 0}`, mine = ++loading;
+    const q = `?days=${opts.days}&labelled=${opts.labelled ? 1 : 0}`, mine = ++loading;
     try {
       const res = await fetch(API + "/stats" + q, { headers: { "x-key": key } });
       if (mine !== loading) return; // a newer request (from another click) is on its way
@@ -435,7 +447,6 @@
   });
   $("labelled").addEventListener("change", (e) => { opts.labelled = e.target.checked; load(); });
   $("logout").addEventListener("click", () => { forget(); showLogin(""); });
-  $("demo").addEventListener("change", (e) => { opts.demo = e.target.checked; $("demoBanner").hidden = !opts.demo; load(); });
   load();
 })();
 </script>

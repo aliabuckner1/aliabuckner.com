@@ -122,25 +122,17 @@ async function statsFor(env, url, origin) {
   const days = Math.max(0, Number(url.searchParams.get("days") ?? 30) || 0);
   const since = days ? Date.now() - days * 86_400_000 : 0;
   const labelled = url.searchParams.get("labelled") === "1", test = url.searchParams.get("test") === "1";
-  // demo=1 shows only the made-up demo visitors (ids start with "demo"), moved forward in time so the newest one is
-  // always "just now"; otherwise the demo visitors are left out entirely
-  const demo = url.searchParams.get("demo") === "1";
-  let shift = 0;
-  if (demo) {
-    const last = await env.DB.prepare("SELECT MAX(ts) AS t FROM events WHERE visitor LIKE 'demo%'").first();
-    shift = last && last.t ? Date.now() - 60_000 - last.t : 0;
-  }
-  const where = ["ts >= ?", demo ? "visitor LIKE 'demo%'" : "visitor NOT LIKE 'demo%'"], args = [since - shift];
-  if (!test && !demo) where.push("host IN ('aliabuckner.com', 'www.aliabuckner.com')");
+  const where = ["ts >= ?"], args = [since];
+  if (!test) where.push("host IN ('aliabuckner.com', 'www.aliabuckner.com')");
   if (!labelled) where.push("(label IS NULL OR label = '')");
   const W = where.join(" AND ");
   const all = async (sql, ...extra) => (await env.DB.prepare(sql).bind(...args, ...extra).all()).results;
 
-  const rows = await all(`SELECT ts + ${shift} AS ts, visitor, visit, event, data, label, device, country, city, network FROM events WHERE ${W} ORDER BY ts`);
+  const rows = await all(`SELECT ts, visitor, visit, event, data, label, device, country, city, network FROM events WHERE ${W} ORDER BY ts`);
   // the named devices are always summarised on their own, whatever the filter
   const named = (await env.DB.prepare(
-    `SELECT label, COUNT(DISTINCT visit) AS visits, MAX(ts) + ${shift} AS last FROM events WHERE ts >= ? AND ${demo ? "visitor LIKE 'demo%'" : "visitor NOT LIKE 'demo%'"} AND label IS NOT NULL AND label != '' GROUP BY label`
-  ).bind(since - shift).all()).results;
+    `SELECT label, COUNT(DISTINCT visit) AS visits, MAX(ts) AS last FROM events WHERE ts >= ? AND label IS NOT NULL AND label != '' GROUP BY label`
+  ).bind(since).all()).results;
   const names = Object.fromEntries((await env.DB.prepare("SELECT visitor, name FROM names").all()).results.map((r) => [r.visitor, r.name]));
-  return json({ days, labelled, test, demo, now: Date.now(), rows, named, names }, 200, origin);
+  return json({ days, labelled, test, now: Date.now(), rows, named, names }, 200, origin);
 }
