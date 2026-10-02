@@ -145,7 +145,8 @@
     dj: "started DJ mode", drum: "added a drum", note: "played a note", dance: "made a letter dance", drop: "dropped the beat",
     hoop_shown: "the hoop appeared", hoop_play: "played basketball", hoop_score: "basketball round", words_start: "started the word game",
     words_score: "word game round", board_add: "added their name to the scoreboard", link: "clicked a link",
-    reset: "pressed reset", sound: "sound button", tally: null,
+    reset: "pressed reset", sound: "sound button", stop_game: "left a game", all_big: "made every letter as big as it goes",
+    ring: "got everyone dancing in a ring", tally: null,
   };
   // the "what people did" groups, in a fixed order; start = the row the rest of the group is measured against
   const GROUPS = [
@@ -155,10 +156,12 @@
       { key: "knock", name: "knocked the name over", tally: "knocks" }, { key: "t:throws", name: "threw letters", tally: "throws" },
       { key: "gravity", name: "changed gravity", tally: "gravity" }, { key: "pop", name: "popped a letter", tally: "pops" },
       { key: "chute", name: "sent a letter through the roof", tally: "chutes" }, { key: "typed", name: "typed letters", tally: "keys" },
-      { key: "secret", name: "typed a secret word" }, { key: "reset", name: "pressed reset" }] },
+      { key: "secret", name: "typed a secret word" }, { key: "all_big", name: "made every letter as big as it goes" },
+      { key: "reset", name: "pressed reset" }] },
     { icon: "🎵", name: "DJ mode", start: "dj", items: [
       { key: "dj", name: "started DJ mode" }, { key: "drum", name: "added drums", tally: "drums" }, { key: "note", name: "played notes", tally: "notes" },
-      { key: "dance", name: "made letters dance", tally: "dances" }, { key: "drop", name: "dropped the beat" }] },
+      { key: "dance", name: "made letters dance", tally: "dances" }, { key: "drop", name: "dropped the beat" },
+      { key: "ring", name: "danced in a ring round the last letter" }] },
     { icon: "🏀", name: "basketball", start: "hoop_shown", items: [
       { key: "hoop_shown", name: "the hoop appeared" }, { key: "hoop_play", name: "played a round" },
       { key: "t:baskets", name: "scored baskets", tally: "baskets" }, { key: "board_add:hoop", name: "added their name to the board" }] },

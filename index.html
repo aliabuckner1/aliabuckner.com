@@ -204,7 +204,7 @@
   const PEEK_AFTER = 45, PEEK_STAY = 8, PEEK_AGAIN = 120;
   // every everyday English word (common words, film-subtitle vocabulary, and their real plurals and -ed/-er forms,
   // all checked against the Scrabble dictionary) that can be made from the letters of "alia buckner"
-  const WORDS = new Set("ace air ale arc are ark ban bar bin bra bun cab can car cub cue cur ear elk era ice ilk ink ire kin lab lie nab nib nil ran rib rub rue run urn able acne acre akin area aria aura back bail bake bale bane bank bare bark barn beak bean bear beau beck bike bile blue blur bran brie buck bulk bunk burn cake cane care clan club clue crab crib cube curb cure curl earl earn kale kiln lace lack lain lair lake lane lark leak lean liar lice lick lien lieu like line link lira lube luck lure lurk nail narc near neck nice nick nuke race rack rail rain rake rank real rein rice rick rile rink rube ruin rule rune ulna aback alien alike ankle arena baker banal biker black blank blare bleak blink bluer brace brain brake break brick brine brink cabal cabin cable canal clank clean clear clerk clink clunk crane crank creak cruel incur lance learn liner lunar nicer relic renal ulcer uncle urban urine aerial arcane backer banker bicker buckle bunker burial carnal eclair lancer linear nebula neural nickel nuclei racial unable unlike unreal urinal balance blacker blinker bracken buckler caliber calibre clinker clunker cranial luckier nuclear unclear balancer barnacle incurable".split(" "));
+  const WORDS = new Set("ace air ale arc are ark ban bar bin bra bun cab can car cub cue cur ear elk era ice ilk ink ire kin lab lie nab nib nil ran rib rub rue run urn able acne acre akin area aria aura back bail bake bale balk bane bank bare bark barn beak bean bear beau beck bike bile bilk blue blur bran brie buck bulk bunk burl burn cake cane care clan club clue crab crib cube curb cure curl earl earn ecru kale kiln lace lack lain lair lake lane lank lark leak lean liar lice lick lien lieu like line link lira lube luck lure lurk nail narc near neck nice nick nuke race rack rail rain rake rank real rein rice rick rile rink rube ruck ruin rule rune ulna urea aback alien alike ankle arena aural baker banal baulk biker black blank blare bleak blink bluer brace brain brake break brick brine brink cabal cabin cable cairn canal caulk clank clean clear clerk clink clunk crane crank creak cruel incur inure lance learn libra liken liner lucre lunar nacre nicer relic renal ruble runic ulcer uncle urban urine aerial arable arcane backer banker bicker buckle bunker burial carnal eclair lacuna lancer linear nebula neural nickel nubile nuclei racial rankle unable unlace unlike unreal urbane urinal auricle balance blacken blacker blinker bracken buckler caliber calibre carbine clinker clunker cranial crinkle curable luckier nuclear unclear balancer barnacle incurable".split(" "));
   const DROP_FREEZE = 0.4; // seconds of silence, everything frozen, between letting go and the boom
   // in DJ mode the hint bar cycles through what you can do
   // phones and tablets can't type or press enter, so instructions that mention keys have a touch version
@@ -273,6 +273,7 @@
   const MAX_EXTRAS = 70; // typed letters, emoji and popped pieces allowed on screen at once
   const CIRCLE_MAX = 5; // most dancers in a circle on a big screen (fewer fit on a phone); any more march around the edge
   const MARCH_PX_PER_BEAT = 55; // how far the marching line moves each beat
+  const RING_HOLD = 8; // seconds everyone keeps dancing round the last letter before anyone's time can run out
   // -------------------------------------------------------------------------
 
   const cv = document.getElementById("cv");
@@ -598,6 +599,7 @@
       for (const f of [392, 494, 587, 784]) this.synth(f, x, 0.6 * v, echo);
     },
     // a letter turning into a dancer
+    fanfare() { if (this.ready()) { const d = this.voice(W / 2); [523, 659, 784, 1047, 1319, 1568].forEach((f, k) => this.chime(d, f, k * 0.07, 0.11, k === 5 ? 1.1 : 0.4)); } },
     sparkle(x) { if (this.ready()) { const d = this.voice(x); [784, 988, 1175, 1568].forEach((f, k) => this.chime(d, f, k * 0.06, 0.09, 0.35)); } },
     hello() { if (this.ready()) { const d = this.voice(W / 2); this.chime(d, 523, 0, 0.16, 0.45); this.chime(d, 659, 0.13, 0.16, 0.6); } },
     gravity(mode) {
@@ -708,7 +710,7 @@
       this.loaded = this.stage; this.ghosts = [];
       this.state = "set"; this.drag = null; this.press = null; this.p = { x: 0, y: 0 };
       this.hoop = null; this.throws = 0; this.throwsNeeded = randInt(...HOOP_FIRST_THROWS); hoopCard.hidden = true;
-      this.beat = null; this.thumps = []; this.rings = [];
+      this.beat = null; this.thumps = []; this.rings = []; this.confetti = []; this.cheer = 0; this.ring = null;
       this.wg = null; this.shelfPress = null; this.build = null; this.flash = 0;
       this.freeze = null; this.dropSec = null; this.quake = 0; this.dropTint = 0;
       this.slowmo = null; this.spelled = null; this.spellKey = ""; this.spellHold = 0; this.peek = null;
@@ -847,6 +849,49 @@
       }
       return best;
     },
+    // every letter on screen swollen as big as it goes (one more tap would pop it): confetti, and the letters flash
+    allBigCheck() {
+      const L = this.bodies.filter((b) => b.ch && !isStick(b) && !(b.away > 0) && !b.fly
+        && b.position.x > 0 && b.position.x < W && b.position.y > 0 && b.position.y < H);
+      if (L.length < 2 || !L.every((b) => b.taps === POP_TAPS - 1)) return;
+      stats.event("all_big", { letters: L.length });
+      sound.fanfare();
+      this.cheer = 2.4;
+      const colors = [C.pink, C.sun, C.sea, C.fg], up = this.flip ? 1 : -1;
+      for (const b of L) {
+        for (let i = 0; i < Math.round(160 / L.length) + 8; i++) {
+          const a = (Math.random() - 0.5) * 2.2, v = 260 + Math.random() * 420;
+          this.confetti.push({ x: b.position.x, y: b.position.y, vx: Math.sin(a) * v, vy: up * Math.cos(a) * v, r: Math.random() * 6, vr: (Math.random() - 0.5) * 14,
+            w: 5 + Math.random() * 5, h: 3 + Math.random() * 3, color: colors[(i + b.id) % colors.length], t: 0, life: 2.2 + Math.random() * 1.2 });
+        }
+      }
+      clearTimeout(this.announceT);
+      hint.textContent = "everything's as big as it gets!";
+      this.announceT = setTimeout(() => { if (cur === this) hint.textContent = this.beat ? DJ_HINTS[0] : this.hint; }, 3500);
+    },
+    confettiStep(dt) {
+      if (this.cheer > 0) this.cheer = Math.max(0, this.cheer - dt);
+      if (!this.confetti.length) return;
+      const g = this.flip ? -700 : 700;
+      for (const c of this.confetti) {
+        c.t += dt; c.vy += g * dt; c.vx *= Math.pow(0.35, dt); c.vy *= Math.pow(0.55, dt); c.x += c.vx * dt; c.y += c.vy * dt; c.r += c.vr * dt;
+      }
+      this.confetti = this.confetti.filter((c) => c.t < c.life);
+    },
+    confettiDraw() {
+      if (!this.confetti.length) return;
+      ctx.save();
+      for (const c of this.confetti) {
+        ctx.globalAlpha = clamp((c.life - c.t) / 0.6, 0, 1);
+        ctx.fillStyle = c.color;
+        ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.r);
+        // flutters: it turns edge-on and back as it falls
+        const fl = Math.cos(c.t * 9 + c.r);
+        ctx.fillRect(-c.w / 2, (-c.h / 2) * fl, c.w, c.h * fl);
+        ctx.restore();
+      }
+      ctx.restore();
+    },
     // each tap inflates a letter; the last one pops it into small copies
     poke(b) {
       const M = window.Matter;
@@ -861,6 +906,7 @@
         const g = b.growStep;
         M.Body.scale(b, g, g); b.fs *= g; b.grow = (b.grow || 1) * g;
         if (this.beat) this.playNote(b.ch, b.position.x, b.taps - 1); else sound.blip(b.taps, b.position.x);
+        if (b.taps === POP_TAPS - 1) this.allBigCheck();
         return;
       }
       M.Body.scale(b, 1 / b.grow, 1 / b.grow); b.fs /= b.grow; b.grow = 0; b.taps = 0;
@@ -997,6 +1043,7 @@
       clearTimeout(this.beatStopT);
       // the music stopped, so the dancers do too
       for (const b of this.bodies) if (b.dance) { b.dance = null; b.collisionFilter.group = 0; }
+      this.ring = null;
       if (this.build) { if (this.build.riser) this.build.riser.stop(); this.build = null; this.setFlip(); }
       this.freeze = null;
       if (this.dropSec) {
@@ -1275,11 +1322,37 @@
     // Dancers never collide with each other, and groups dance together: 2 are partners, 3 do the wave,
     // 4-5 hold hands in a turning circle, 6 do a kickline.
     danceDims(b) { const k = inkOf(b.ch), w = k.w * b.fs / 100, h = k.h * b.fs / 100; return { w, h, leg: isStick(b) ? 0 : h * 0.45 }; },
+    // in DJ mode, once every letter but one is dancing, the dancers make a ring around the last one, who dances in the
+    // middle. Nobody's time runs out for the first RING_HOLD seconds; it breaks up when someone stops dancing.
+    ringStep(dt) {
+      const R = this.ring, M = window.Matter;
+      if (R) {
+        R.t += dt;
+        const c = R.center, others = this.bodies.filter((b) => b !== c && !b.dance && !(b.away > 0));
+        if (this.beat && this.bodies.includes(c) && c.dance && !others.length && this.bodies.filter((b) => b.dance && b !== c).length >= 3) return;
+        if (c.dance && c.dance.center) { c.dance = null; c.collisionFilter.group = 0; }
+        this.ring = null;
+        return;
+      }
+      if (!this.beat) return;
+      const loose = this.bodies.filter((b) => !b.dance && !(b.away > 0));
+      if (loose.length !== 1 || this.bodies.filter((b) => b.dance && !b.dance.held).length < 3) return;
+      const c = loose[0];
+      if (c === this.drag || isStick(c) || c.fly || c.chute) return;
+      // the one in the middle goes back to its normal size, so the ring fits round it
+      if (c.grow) { M.Body.scale(c, 1 / c.grow, 1 / c.grow); c.fs /= c.grow; c.grow = 0; c.taps = 0; }
+      c.dance = { t: 0, x: W / 2, y: c.position.y, px: c.position.x, py: c.position.y, held: false, auto: true, center: true };
+      this.ring = { center: c, t: 0 };
+      stats.event("ring");
+      sound.sparkle(W / 2);
+    },
     danceStep(dt) {
       const M = window.Matter;
       this.danceT = (this.danceT || 0) + dt;
+      this.ringStep(dt);
       for (const b of this.bodies) {
         if (!b.dance || b.dance.held) continue;
+        if (this.ring && this.ring.t < RING_HOLD) continue;
         b.dance.t += dt;
         if (b.dance.t > DANCE_SECONDS && !b.dance.auto) { b.dance = null; b.collisionFilter.group = 0; }
       }
@@ -1299,7 +1372,23 @@
       const standY = (dm, scale, extra) => (floating ? avgY : groundY + up * (dm.leg + dm.h / 2) * scale) + up * extra;
       // how many fit in a circle depends on the screen: about 3 on a phone, up to CIRCLE_MAX on a computer
       const circleMax = clamp(Math.floor((W - 40) / (this.layouts[0].fs * 1.2 + 8)), 3, CIRCLE_MAX);
-      const mode = n === 1 ? "solo" : n === 2 ? "pair" : n === 3 ? "wave" : n <= circleMax ? "circle" : "march";
+      const ring = this.ring && D.includes(this.ring.center) ? this.ring : null;
+      const mode = ring ? "ring" : n === 1 ? "solo" : n === 2 ? "pair" : n === 3 ? "wave" : n <= circleMax ? "circle" : "march";
+      // the ring: big enough to go round the one in the middle, small enough to stay on screen; however far apart the
+      // dancers end up, their arms stretch to hold hands
+      const ringers = ring ? order.filter((b) => b !== ring.center) : [];
+      // it fills most of the screen; a small crowd dances a bit bigger, a big one shrinks to fit
+      let ringR = 0, ringFit = 1;
+      if (ring) {
+        const wide = Math.max(...ringers.map((b) => { const d = this.danceDims(b); return d.w + d.h * 0.6; })), mid = this.danceDims(ring.center);
+        const need = (f) => (ringers.length * wide * f * 0.8) / (Math.PI * 2), room = (f) => Math.min(W / 2 - (wide * f) / 2 - 10, H * 0.42);
+        ringFit = clamp(room(1) / need(1), 0.45, 1.3);
+        ringFit = clamp(room(ringFit) / need(ringFit), 0.45, 1.3);
+        ringR = clamp(Math.max(need(ringFit), mid.w / 2 + (wide * ringFit) / 2 + 12, Math.min(W, H) * 0.38), 60, room(ringFit));
+      }
+      // the ring dances in the middle of the screen, not on the floor: feet on an ellipse round the centre
+      const ringFeet = (depth) => H / 2 + depth * ringR * 0.45;
+      const standAt = (feetY, dm, scale, extra) => (floating ? avgY : feetY + up * (dm.leg + dm.h / 2) * scale) + up * extra;
       // the march: everyone follows a path around the inside edge of the screen, feet always against the edge
       // it's a conga line: it sets off from where the dancers already are (the rightmost leads, walking right along the
       // floor), whoever is in front stays in front, and anyone joining later goes to the back
@@ -1343,6 +1432,18 @@
           off = k / 3;
           tx = cx + (k - 1) * gap + Math.sin((beats / 4) * Math.PI * 2) * gap * 0.25;
           ty = standY(dm, 1, bounce(off)); angle = Math.sin((beats / 2) * Math.PI * 2) * 0.12;
+        } else if (mode === "ring" && b === ring.center) {
+          // the star of the show: dances on the spot in the middle, a little bouncier than everyone else
+          arms = "free"; scale = 1.3;
+          tx = W / 2 + Math.sin((beats / 2) * Math.PI * 2) * dm.w * 0.25;
+          ty = standAt(ringFeet(0), dm, scale, bounce(0.5) * 1.4); angle = Math.sin(beats * Math.PI) * 0.25;
+        } else if (mode === "ring") {
+          const j = ringers.indexOf(b), th = (j / ringers.length) * Math.PI * 2 + (beats / 8) * Math.PI * 2;
+          depth = Math.sin(th); scale = ringFit * (0.75 + 0.25 * (depth + 1) / 2);
+          tx = W / 2 + ringR * Math.cos(th);
+          // seen from a little above: the back of the ring is higher up the screen than the front
+          ty = standAt(ringFeet(depth), dm, scale, bounce(0) * scale);
+          angle = -Math.cos(th) * 0.1;
         } else if (mode === "circle") {
           const R = Math.min(clamp((gap * n) / (Math.PI * 2) * 1.15, 50, W * 0.3), W / 2 - gap);
           const cx = W / 2; // the circle always dances in the middle of the screen
@@ -1428,15 +1529,18 @@
       const order = (this.danceOrder || []).filter((b) => D.includes(b));
       const mode = D[0].dance.mode;
       // held hands: a sagging line from each dancer's hand to the next one's
-      if (order.length > 2 && mode !== "solo" && mode !== "pair" && mode !== "march") {
-        const pairs = order.slice(0, -1).map((b, k) => [b, order[k + 1]]);
-        if (mode === "circle") pairs.push([order[order.length - 1], order[0]]);
+      // in the ring, the one in the middle dances on its own
+      const linked = mode === "ring" ? order.filter((b) => !b.dance.center) : order;
+      if (linked.length > 2 && mode !== "solo" && mode !== "pair" && mode !== "march") {
+        const round = mode === "circle" || mode === "ring";
+        const pairs = linked.slice(0, -1).map((b, k) => [b, linked[k + 1]]);
+        if (round) pairs.push([linked[linked.length - 1], linked[0]]);
         ctx.save(); ctx.lineCap = "round";
         for (const [a, b] of pairs) {
           let ha = this.handAt(a, 1), hb = this.handAt(b, -1);
-          if (mode === "circle" && ha.x > hb.x) { ha = this.handAt(a, -1); hb = this.handAt(b, 1); }
+          if (round && ha.x > hb.x) { ha = this.handAt(a, -1); hb = this.handAt(b, 1); }
           ctx.strokeStyle = this.danceColor(a); ctx.lineWidth = Math.max(2, a.fs * 0.05);
-          ctx.globalAlpha = mode === "circle" ? 0.55 + 0.45 * ((a.dance.depth + b.dance.depth) / 4 + 0.5) : 1;
+          ctx.globalAlpha = round ? 0.55 + 0.45 * ((a.dance.depth + b.dance.depth) / 4 + 0.5) : 1;
           ctx.beginPath(); ctx.moveTo(ha.x, ha.y);
           ctx.quadraticCurveTo((ha.x + hb.x) / 2, (ha.y + hb.y) / 2 + (this.flip ? -1 : 1) * (mode === "kick" ? 2 : 10), hb.x, hb.y);
           ctx.stroke();
@@ -1449,7 +1553,8 @@
     danceColor(b) {
       const d = b.dance;
       if (d.held) return C.pink;
-      return [C.pink, C.sun, C.sea][Math.floor(this.danceClock() + (d.off || 0)) % 3];
+      // the one in the middle of the ring is always a different colour from the ring round it
+      return [C.pink, C.sun, C.sea][Math.floor(this.danceClock() + (d.off || 0) + (d.center ? 1 : 0)) % 3];
     },
     // the dancer always ends up on his feet: he turns upright in the air like a cat, hops back up if he's
     // tipped over on the floor, throws his arms up while flying, dangles when carried and squashes on landing
@@ -1886,6 +1991,8 @@
       if (g.leaving) { g.rise -= dt / 0.4; if (g.rise <= 0) { this.wg = null; return; } }
       else g.rise = Math.min(1, g.rise + dt / 0.5);
       g.shake = Math.max(0, g.shake - dt);
+      // the letters turn themselves upright as they come to rest, so an n can't be mistaken for an upside-down u
+      if (!g.leaving) this.standUp();
       for (const b of g.bursts) b.t += dt;
       g.bursts = g.bursts.filter((b) => b.t < SCORE_TEXT_SECONDS);
       if (g.game === "playing" || g.game === "over") this.idle = 0;
@@ -1894,6 +2001,19 @@
         g.t -= dt;
         if (Math.ceil(g.t) < before && before <= 5 && g.t > 0) sound.tick();
         if (g.t <= 0) { g.t = 0; this.wordsEnd(); }
+      }
+    },
+    standUp() {
+      const M = window.Matter;
+      for (const b of this.bodies) {
+        if (b.isStatic || b.fly || b.dance || isStick(b) || b === this.drag) continue;
+        // a letter that's still flying tumbles freely; it only rights itself once it slows down
+        if (Math.hypot(b.velocity.x, b.velocity.y) > 3) continue;
+        const off = Math.atan2(Math.sin(b.angle), Math.cos(b.angle));
+        if (Math.abs(off) < 0.01) continue;
+        M.Body.setAngularVelocity(b, clamp(-off * 0.1, -0.05, 0.05));
+        // a little lift while it turns, so it pivots up instead of grinding against the floor
+        if (Math.abs(off) > 0.5) M.Body.setVelocity(b, { x: b.velocity.x, y: b.velocity.y + (this.flip ? 0.15 : -0.15) });
       }
     },
     wgDraw() {
@@ -2382,6 +2502,7 @@
       // the links line floats off the top while you play (0.9s) and drifts back down when the name reassembles (1.4s)
       this.linkShow = clamp((this.linkShow ?? 1) + (this.linkDir > 0 ? dt / 1.4 : -dt / 0.9), 0, 1);
       this.rings = this.rings.filter((r) => r.t < 0.6);
+      this.confettiStep(dt);
       if (this.beat && this.state !== "loose") this.stopBeat();
       if (this.freeze) {
         this.freeze.t -= dt;
@@ -2563,11 +2684,14 @@
         if (b.dance) { if (b.dance.held) this.drawDancer(b); continue; }
         if (isStick(b)) { this.drawStick(b, C.pink); continue; }
         // after a drop the letters stay coloured, changing colour on every kick
-        const tint = this.dropSec ? [C.pink, C.sun, C.sea][((this.dropColor || 0) + b.id) % 3] : C.fg;
+        let tint = this.dropSec ? [C.pink, C.sun, C.sea][((this.dropColor || 0) + b.id) % 3] : C.fg;
+        // and while the confetti flies, every letter flashes through the colours
+        if (this.cheer > 0) tint = [C.pink, C.sun, C.sea][(Math.floor(this.cheer * 8) + b.id) % 3];
         const glow = this.spelled && this.spelled.bodies.includes(b);
         drawGlyph(b.ch, b.position.x, b.position.y, b.angle, b.fs, b === this.drag || glow ? C.pink : tint, (b.oxu || 0) * b.fs, (b.oyu || 0) * b.fs, b.linkFont);
       }
       this.drawDancers();
+      this.confettiDraw();
       this.peekDraw();
       if (this.spelled) {
         const sp = this.spelled;
