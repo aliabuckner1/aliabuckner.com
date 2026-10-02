@@ -63,6 +63,7 @@
   }
   .sound:hover { color: var(--fg); }
   #resetBtn:not([hidden]) + .sound { margin-left: 0; } /* reset sits just left of sound */
+  #resetBtn.in-game { color: var(--fg); } /* "stop the party" / "leave game" stand out a little from the grey */
   .sound:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
   .tabs button {
     font: inherit; color: var(--muted); background: none; border: 0; cursor: pointer;
@@ -191,7 +192,7 @@
   const WORD_ROUNDS = 2; // the word game offers "play again" once, then just "done"
   const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
   const SCORE_TEXT_SECONDS = 2.2; // how long "+2", "3-pointer" and "no dunks" stay up
-  const BEAT_AFTER_THUMPS = 4; // thumps in a row (one bar) before the page picks up the rhythm and keeps drumming
+  const BEAT_AFTER_THUMPS = 6; // thumps in a row before the page picks up the rhythm and keeps drumming
   const BEAT_MAX_GAP = 1.5; // seconds allowed between those thumps; within it, single taps keep thumping
   // the word game: type "words" to bring out the shelf
   const WORD_GAME_SECONDS = 60;
@@ -256,14 +257,15 @@
     tally() { this.send("tally", { secs: Math.round((Date.now() - this.start) / 1000), active: this.active, ...this.counts }); },
   };
   const DJ_HINTS = [
-    "double-tap high, mid or low to add drums",
+    "tap high, mid or low to add drums",
     say("click or type letters to play notes", "tap letters to play notes"),
     "hold a letter still to make it dance",
     "hold empty space for 3 seconds to drop the beat",
   ];
   const DROP_SECTION_BARS = 8; // how long the colourful section after a drop lasts
   const DROP_MIN_HOLD = 3; // the drop only happens if you hold at least this long; letting go sooner calls it off
-  const BUILD_SECONDS = 4; // holding during the beat reaches a full build-up after this long
+  const LIFT_UP = 0.6; // seconds the letters take to float up when the build-up starts, before they sink back down
+  const BUILD_SECONDS = 3; // holding during the beat reaches a full build-up after this long (same moment as DROP_MIN_HOLD)
   const DANCE_HOLD = 0.8; // seconds to hold a letter before it starts dancing
   const DANCE_DRIFT = 25; // how far (px) the pointer can wander during that hold
   const DANCE_SECONDS = 30; // how long a letter dances on its own
@@ -980,7 +982,8 @@
       const x = ts.reduce((a, t) => a + t.x, 0) / ts.length, y = ts.reduce((a, t) => a + t.y, 0) / ts.length;
       this.beat = {
         stepLen: interval / 2, step: 0, acc: 0, startedAt: performance.now() / 1000,
-        layers: { kick: { steps: new Set([0, 2, 4, 6]), x, y }, snare: null, hat: null },
+        // it starts as a kick on every beat with a quiet hi-hat in between; both show on the grid and can be tapped out
+        layers: { kick: { steps: new Set([0, 2, 4, 6]), x, y }, snare: null, hat: { steps: new Set([1, 3, 5, 7]), soft: new Set([1, 3, 5, 7]), x, y: H / 6 } },
       };
       this.thumps = [];
       // DJ mode and basketball don't mix: a hoop that's waiting for a game slides away
@@ -1042,10 +1045,11 @@
         if (this.dropSec) { this.dropStep(b); continue; }
         for (const kind of ["kick", "snare", "hat"]) {
           const L = b.layers[kind];
-          if (L && L.steps.has(b.step)) this.thump({ x: L.x + (Math.random() - 0.5) * 30, y: L.y }, true, kind);
+          if (!L || !L.steps.has(b.step)) continue;
+          // the starting hi-hat is just a quiet tick that doesn't knock letters; hats you add are full ones
+          if (L.soft && L.soft.has(b.step)) sound.hat(b.layers.kick.x + (Math.random() - 0.5) * 60);
+          else this.thump({ x: L.x + (Math.random() - 0.5) * 30, y: L.y }, true, kind);
         }
-        // until you add hats, a quiet tick on the off-beats keeps the groove
-        if (!b.layers.hat && b.step % 2 === 1) sound.hat(b.layers.kick.x + (Math.random() - 0.5) * 60);
       }
     },
     // a double-tap while the beat runs adds that row's drum at the nearest half-beat, so it always lands in time;
@@ -1056,8 +1060,9 @@
       const pos = b.step + b.acc / b.stepLen, near = Math.round(pos), n = ((near % 8) + 8) % 8;
       let L = b.layers[kind];
       if (!L) L = b.layers[kind] = { steps: new Set(), x: p.x, y: p.y };
+      this.drumTags = (this.drumTags || []).concat({ x: p.x, y: p.y, at: performance.now(), text: (L.steps.has(n) ? "removed " : "+ ") + kind });
       if (L.steps.has(n)) {
-        L.steps.delete(n);
+        L.steps.delete(n); if (L.soft) L.soft.delete(n);
         if (!L.steps.size && kind !== "kick") b.layers[kind] = null;
         return;
       }
@@ -1148,22 +1153,53 @@
     },
     // ---- the drop: hold during the beat to build up, let go to drop
     startBuild(p) {
-      this.build = { t: 0, x: p.x, y: p.y, roll: 0, riser: sound.riser() };
+      this.build = { t: 0, x: p.x, y: p.y, roll: 0, riser: sound.riser(), lift: this.liftPlan() };
       clearTimeout(this.announceT);
       hint.textContent = "keep holding...";
+    },
+    // where each letter starts and where it should touch down: a letter resting on the floor (or on another letter)
+    // comes back to the same spot; one still in the air lands on the floor
+    liftPlan() {
+      const down = this.flip ? -1 : 1, floor = this.flip ? 0 : H;
+      return this.bodies.filter((b) => !b.dance && !isStick(b) && !b.isStatic).map((body) => {
+        const y0 = body.position.y, edge = down > 0 ? body.bounds.max.y - y0 : body.bounds.min.y - y0;
+        const resting = Math.hypot(body.velocity.x, body.velocity.y) < 1.5;
+        const endY = resting ? y0 : floor - edge;
+        // lift each one a different amount, but never into the ceiling
+        const room = down > 0 ? Math.min(y0, endY) - 40 : H - 40 - Math.max(y0, endY);
+        const rise = -down * clamp(H * (0.14 + Math.random() * 0.1), 0, Math.max(0, room));
+        return { body, y0, endY, rise };
+      });
+    },
+    // how far up the letters are, 0..1: up quickly at the start, then down at a steady rate, landing at DROP_MIN_HOLD
+    liftCurve(t) {
+      if (t < LIFT_UP) { const k = t / LIFT_UP; return 1 - (1 - k) * (1 - k); }
+      return Math.max(0, 1 - (t - LIFT_UP) / (DROP_MIN_HOLD - LIFT_UP));
     },
     buildStep(dt) {
       const bd = this.build, b = this.beat;
       if (!bd) return;
       if (!b) { if (bd.riser) bd.riser.stop(); this.build = null; return; }
       bd.t += dt;
-      if (bd.t >= DROP_MIN_HOLD && !bd.ready) { bd.ready = true; hint.textContent = "let go to drop!"; }
+      // they've landed, so normal gravity is back while they wait for the drop
+      if (bd.t >= DROP_MIN_HOLD && !bd.ready) { bd.ready = true; hint.textContent = "let go to drop!"; this.setFlip(); }
       const amount = Math.min(1, bd.t / BUILD_SECONDS), M = window.Matter;
-      // letters get lighter and start to tremble
-      this.engine.gravity.y = (this.zero > 0 ? 0 : this.flip ? -1 : 1) * (1 - 0.85 * amount);
-      for (const body of this.bodies) {
-        if (body.dance) continue;
-        M.Body.setVelocity(body, { x: body.velocity.x + (Math.random() - 0.5) * 1.6 * amount, y: body.velocity.y + (Math.random() - 0.5) * 1.6 * amount });
+      // the letters float up, then sink at a steady rate so they touch down just as it says "let go"; they tremble more as it builds
+      const shake = (Math.random() - 0.5) * 1.6 * amount;
+      if (!bd.ready) {
+        this.engine.gravity.y = 0;
+        for (const l of bd.lift) {
+          const body = l.body;
+          if (!this.bodies.includes(body) || body === this.drag) continue;
+          const want = l.endY + (l.y0 - l.endY) * Math.max(0, 1 - bd.t / LIFT_UP) + l.rise * this.liftCurve(bd.t);
+          const vy = clamp((want - body.position.y) * 0.25, -14, 14);
+          M.Body.setVelocity(body, { x: body.velocity.x * 0.9 + (Math.random() - 0.5) * 1.6 * amount, y: vy + shake });
+        }
+      } else {
+        for (const body of this.bodies) {
+          if (body.dance || isStick(body) || body === this.drag) continue;
+          M.Body.setVelocity(body, { x: body.velocity.x + (Math.random() - 0.5) * 1.6, y: body.velocity.y + (Math.random() - 0.5) * 1.6 });
+        }
       }
       // a snare roll that speeds up: every half-beat, then quarter-beat, then faster
       const gap = b.stepLen * (amount < 0.34 ? 1 : amount < 0.67 ? 0.5 : 0.25);
@@ -1589,6 +1625,8 @@
       }
       if (this.wg || this.beat || this.build || this.freeze || this.inGame() || this.mode !== 0) return;
       if (performance.now() < (this.wordsCooldownUntil || 0)) return;
+      // not while the name is still tumbling down after a knock-over (it falls in order and could read "buck")
+      if (performance.now() - (this.collapsedAt || 0) < 3500) return;
       this.watchT = (this.watchT || 0) + dt;
       if (this.watchT < 0.25) return;
       this.watchT = 0;
@@ -2089,12 +2127,20 @@
       this.gather();
     },
     // the reset button: stops whatever is going on and puts the name and links back
+    // the bottom-right button: during a game it ends just that game (letters stay where they are); otherwise it puts
+    // the name and links back
+    resetLabel() { return this.beat ? "stop the party" : this.wg || this.inGame() ? "leave game" : "reset"; },
     reset() {
       if (!this.ok) return;
-      stats.event("reset");
       clearTimeout(this.linksT);
-      if (this.beat) this.stopBeat();
-      if (this.wg) this.wordsQuit();
+      if (this.beat) { stats.event("stop_game", { game: "dj" }); this.stopBeat(); return; }
+      if (this.wg) { stats.event("stop_game", { game: "words" }); this.wordsQuit(); return; }
+      if (this.inGame()) {
+        stats.event("stop_game", { game: "hoop" });
+        this.hoop.game = "done"; this.hoop.leaving = true; hoopCard.hidden = true; hint.textContent = this.hint;
+        return;
+      }
+      stats.event("reset");
       this.showLinks();
     },
     isLast() { return this.stage === PILE_STAGES.length - 1; },
@@ -2169,6 +2215,10 @@
     },
     gather() {
       const M = window.Matter;
+      // anything half-finished goes with it: a word-game shelf still sliding away, or the "words?" tab, would otherwise
+      // sit hidden while the name stands and flash on screen at the next knock-over
+      if (this.wg) { this.landFliers(); this.wg = null; hoopCard.hidden = true; }
+      this.peek = null;
       sound.settle();
       this.linkDir = 1;
       this.slowmo = null; this.engine.timing.timeScale = 1;
@@ -2234,7 +2284,8 @@
           clearTimeout(this.announceT);
           hint.textContent = GRAVITY_MODES[this.mode];
           this.announceT = setTimeout(() => { if (cur === this) hint.textContent = this.hint; }, 2500);
-        }, 550);
+          // during a beat the build-up starts as soon as it's clearly a hold, not a tap (taps are under 0.3s)
+        }, this.beat ? 300 : 550);
       }
     },
     move(p, dx, dy, down) {
@@ -2289,15 +2340,15 @@
         const k = this.linkAt(p);
         if (k) { this.openLink(k.word); return; }
       }
-      // while the beat is going, a lone click on empty space stops it. It waits a beat first in case the click is half of a
-      // double-tap (those add drums), and ignores clicks just after the beat starts, in case you're still tapping along.
+      // while the beat is going, a tap on empty space adds that row's drum (high, mid or low); the party only ends from
+      // the "stop the party" button (or typing "stop"), so a stray tap never ends it by accident
       if (this.beat) {
-        clearTimeout(this.beatStopT); this.knocked = false;
+        this.knocked = false;
         // a click right on a letter plays its note (and swells it); exact hits only, so empty space is easy to find
         const letter = window.Matter.Query.point(this.bodies, p)[0];
         if (letter) { this.poke(letter); return; }
-        if (performance.now() / 1000 - this.beat.startedAt < 1.6) return;
-        this.beatStopT = setTimeout(() => { if (cur === this && this.beat) this.stopBeat(); }, 360);
+        this.tapThumpAt = performance.now(); // so the second tap of a double-tap doesn't add (and undo) it again
+        this.addDrum(p);
         return;
       }
       const hit = this.hitAt(p);
@@ -2321,7 +2372,9 @@
         this.stillT = moving ? 0 : (this.stillT || 0) + dt;
         if (this.stillT > 0.3 || performance.now() - (this.collapsedAt || 0) > 6000) this.settledOnce = true;
       }
-      const canReset = (this.state === "loose" && this.settledOnce) || !!this.wg;
+      const canReset = (this.state === "loose" && this.settledOnce) || !!this.wg || !!this.beat || this.inGame();
+      const label = this.resetLabel();
+      if (resetBtn.textContent !== label) { resetBtn.textContent = label; resetBtn.classList.toggle("in-game", label !== "reset"); }
       if (resetBtn.hidden === canReset) resetBtn.hidden = !canReset;
       for (const g of this.ghosts) { g.vy -= 90 * dt; g.x += g.vx * dt; g.y += g.vy * dt; g.r += g.vr * dt; }
       this.ghosts = this.ghosts.filter((g) => g.y > -120);
@@ -2476,6 +2529,20 @@
       if (this.beat) {
         const b = this.beat;
         ctx.save();
+        // the screen is three bands, top to bottom: hat, snare, kick; faint dashed lines show where one ends
+        ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.setLineDash([4, 6]);
+        for (const y of [H / 3, (H * 2) / 3]) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+        ctx.setLineDash([]);
+        // what a tap just did, by your finger: "+ snare", or "removed snare" when it took one out
+        const nowMs = performance.now();
+        this.drumTags = (this.drumTags || []).filter((t) => nowMs - t.at < 900);
+        ctx.font = '13px "DM Mono", ui-monospace, Menlo, monospace'; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+        for (const t of this.drumTags) {
+          const k = (nowMs - t.at) / 900;
+          ctx.globalAlpha = 1 - k * k; ctx.fillStyle = t.text.startsWith("removed") ? C.muted : C.pink;
+          ctx.fillText(t.text, clamp(t.x, 40, W - 40), t.y - 18 - k * 16);
+        }
+        ctx.globalAlpha = 1;
         ctx.font = '11px "DM Mono", ui-monospace, Menlo, monospace'; ctx.textBaseline = "middle"; ctx.textAlign = "left";
         [["hat", H / 6], ["snare", H / 2], ["kick", (H * 5) / 6]].forEach(([kind, y]) => {
           const L = b.layers[kind];
@@ -2484,7 +2551,7 @@
           for (let k = 0; k < 8; k++) {
             const x = 64 + k * 11 + (k >= 4 ? 4 : 0), on = L && L.steps.has(k);
             ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2);
-            if (on) { ctx.fillStyle = C.pink; ctx.fill(); } else { ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.stroke(); }
+            if (on) { ctx.fillStyle = C.pink; if (L.soft && L.soft.has(k)) ctx.globalAlpha = 0.45; ctx.fill(); ctx.globalAlpha = L ? 0.9 : 0.4; } else { ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.stroke(); }
             if (k === b.step) { ctx.strokeStyle = C.fg; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI * 2); ctx.stroke(); }
           }
         });
