@@ -84,6 +84,10 @@ async function logEvent(req, env) {
     "INSERT INTO events (ts, host, visitor, visit, event, data, label, device, country, city, network) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
   ).bind(Date.now(), clip(b.host, 60), b.visitor, b.visit, b.event, data, clip(b.label, 12), clip(b.device, 12),
     clip(cf.country, 4), clip(cf.city, 60), clip(cf.asOrganization, 80)).run();
+  // a device that's just been labelled (?me=alia) takes its earlier, unlabelled visits along with it
+  if (b.label && b.event === "visit") {
+    await env.DB.prepare("UPDATE events SET label = ? WHERE visitor = ? AND (label IS NULL OR label = '')").bind(clip(b.label, 12), b.visitor).run();
+  }
   return new Response(null, { status: 204, headers: { "access-control-allow-origin": "*" } });
 }
 

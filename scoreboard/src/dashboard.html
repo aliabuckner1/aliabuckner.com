@@ -183,6 +183,13 @@
     return NAMES[r.event] || r.event;
   };
 
+  // automated visits (link checkers, crawlers): driven by automation software, or from a hosting / security company's
+  // network without ever touching anything. People on those networks who actually play still count.
+  const HOSTING = /\b(ovh|logicweb|palo alto networks|reflectionai|digitalocean|hetzner|linode|akamai|amazon|aws|google cloud|microsoft azure|azure|oracle|cloudflare|contabo|vultr|choopa|m247|datacamp|zscaler|leaseweb|scaleway|tencent|alibaba|hostinger|ionos|godaddy|censys|shadowserver|hurricane electric|colocrossing|psychz)\b/i;
+  const INTERACTIONS = new Set(["visit", "tally"]);
+  const isBot = (p) => p.visits.some((v) => v.events.some((e) => e.event === "visit" && e.d.bot)) ||
+    (HOSTING.test(p.network || "") && p.visits.every((v) => v.events.every((e) => INTERACTIONS.has(e.event)) && !v.active && !(v.tally.touches || v.tally.keys)));
+
   // ---- shape the raw events into people and visits
   function build(rows) {
     const visits = new Map();
@@ -226,7 +233,9 @@
       p.network = last.network; p.device = last.device;
       p.ref = (p.visits.find((v) => v.ref) || {}).ref || "";
     }
-    return { visits: [...visits.values()], people: [...people.values()] };
+    // leave the automated visits out of everything, but say how many there were
+    const all = [...people.values()], bots = all.filter(isBot), botIds = new Set(bots.map((p) => p.id));
+    return { visits: [...visits.values()].filter((v) => !botIds.has(v.visitor)), people: all.filter((p) => !botIds.has(p.id)), bots };
   }
   // what to call someone: a name Alia gave them, else their device label, else the end of their random id
   const nameOf = (id, label) => (data.names && data.names[id]) || label || "#" + id.slice(-5);
@@ -235,11 +244,12 @@
 
   // ---- the page
   function render() {
-    const { visits, people } = build(data.rows);
+    const { visits, people, bots } = build(data.rows);
     const n = people.length;
     $("named").textContent = data.named.length
       ? "your named devices: " + data.named.map((x) => `${x.label} (${x.visits} visit${x.visits === 1 ? "" : "s"}, last ${ago(x.last)})`).join(" · ") + (opts.labelled ? "" : " — not counted below")
       : "no named devices yet — open the site once with ?me=alia (or ?me=dad) on each device";
+    if (bots.length) $("named").textContent += ` · ${bots.length} automated visit${bots.length === 1 ? "" : "s"} hidden (link checkers and crawlers)`;
     if (!visits.length) { $("body").innerHTML = `<p class="msg">nobody yet in this range</p>`; return; }
 
     const linkPeople = people.filter((p) => p.links.length).length;

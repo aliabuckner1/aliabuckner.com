@@ -236,7 +236,7 @@
       try { ref = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, "") : ""; } catch (e) {}
       if (ref === location.hostname.replace(/^www\./, "")) ref = "";
       this.ready = true;
-      this.send("visit", { ref, src: qs.get("utm_source") || qs.get("ref") || "", w: innerWidth, h: innerHeight });
+      this.send("visit", { ref, src: qs.get("utm_source") || qs.get("ref") || "", w: innerWidth, h: innerHeight, bot: navigator.webdriver ? 1 : 0 });
       setInterval(() => this.tally(), 30000);
       addEventListener("pagehide", () => this.tally());
       document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") this.tally(); });
