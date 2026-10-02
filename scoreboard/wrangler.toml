@@ -6,3 +6,9 @@ compatibility_date = "2026-09-01"
 binding = "DB"
 database_name = "aliabuckner-scoreboard"
 database_id = "69965a72-23df-42f6-9969-978f1861df55"
+
+# the dashboard page is bundled into the worker as text
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true

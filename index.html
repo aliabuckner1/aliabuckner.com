@@ -210,6 +210,51 @@
   const TOUCH = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
   const say = (computer, phone) => (TOUCH ? phone : computer);
   const WORD_HINT = say("type or click letters to send them up. enter to score.", "tap letters to send them up. tap the shelf to score.");
+
+  // ---- visit stats: what people do here, for Alia's private dashboard (the Worker in scoreboard/ stores them).
+  // Each browser gets a random anonymous id; nothing personal is sent. Milestones go as they happen, and a running
+  // tally (time on the page, active time, throws, drums...) goes every 30 seconds and when the page is left.
+  // A secret link names a device, so Alia's and her family's own visits can be told apart: ?me=alia, ?me=dad (?me=off forgets).
+  const STATS_URL = "https://aliabuckner-scoreboard.aliabuckner-scoreboard.workers.dev/e";
+  const stats = {
+    counts: {}, seen: new Set(), start: Date.now(), active: 0, lastInput: 0, ready: false,
+    rid: () => Math.random().toString(36).slice(2, 12) + Date.now().toString(36),
+    init() {
+      const qs = new URLSearchParams(location.search), me = qs.get("me");
+      try {
+        if (me !== null) {
+          if (!me || me === "off") localStorage.removeItem("bio-toys-who"); else localStorage.setItem("bio-toys-who", me.toLowerCase().slice(0, 12));
+          qs.delete("me"); history.replaceState(null, "", location.pathname + (qs.toString() ? "?" + qs : "") + location.hash);
+        }
+        this.label = localStorage.getItem("bio-toys-who") || "";
+        this.visitor = localStorage.getItem("bio-toys-visitor") || this.rid();
+        localStorage.setItem("bio-toys-visitor", this.visitor);
+      } catch (e) { this.label = ""; this.visitor = this.visitor || this.rid(); }
+      this.visit = this.rid();
+      this.device = TOUCH ? (Math.min(screen.width, screen.height) < 600 ? "phone" : "tablet") : "computer";
+      let ref = "";
+      try { ref = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, "") : ""; } catch (e) {}
+      if (ref === location.hostname.replace(/^www\./, "")) ref = "";
+      this.ready = true;
+      this.send("visit", { ref, src: qs.get("utm_source") || qs.get("ref") || "", w: innerWidth, h: innerHeight });
+      setInterval(() => this.tally(), 30000);
+      addEventListener("pagehide", () => this.tally());
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") this.tally(); });
+      for (const t of ["pointerdown", "keydown"]) addEventListener(t, () => { this.lastInput = Date.now(); }, { passive: true, capture: true });
+      // active time: seconds with a tap or key in the last 5, while the page is on screen
+      setInterval(() => { if (document.visibilityState === "visible" && Date.now() - this.lastInput < 5000) this.active += 1; }, 1000);
+    },
+    send(event, data) {
+      if (!this.ready) return;
+      const body = JSON.stringify({ visitor: this.visitor, visit: this.visit, event, data, label: this.label, device: this.device, host: location.host });
+      try { if (navigator.sendBeacon && navigator.sendBeacon(STATS_URL, body)) return; } catch (e) {}
+      fetch(STATS_URL, { method: "POST", body, keepalive: true, mode: "no-cors" }).catch(() => {});
+    },
+    event(name, data) { this.send(name, data); },
+    first(name, data) { if (!this.seen.has(name)) { this.seen.add(name); this.send(name, data); } },
+    count(name, n = 1) { this.counts[name] = (this.counts[name] || 0) + n; },
+    tally() { this.send("tally", { secs: Math.round((Date.now() - this.start) / 1000), active: this.active, ...this.counts }); },
+  };
   const DJ_HINTS = [
     "double-tap high, mid or low to add drums",
     say("click or type letters to play notes", "tap letters to play notes"),
@@ -816,6 +861,7 @@
         return;
       }
       M.Body.scale(b, 1 / b.grow, 1 / b.grow); b.fs /= b.grow; b.grow = 0; b.taps = 0;
+      stats.first("pop"); stats.count("pops");
       if (this.beat) sound.stab(b.position.x, this.beat.stepLen * 1.5); else sound.pop(b.position.x);
       M.Body.setVelocity(b, { x: (Math.random() - 0.5) * 6, y: this.flip ? 10 : -10 });
       if (this.extras() > MAX_EXTRAS) return;
@@ -826,6 +872,7 @@
     },
     key(ch) {
       if (!this.ok) return;
+      stats.first("typed"); stats.count("keys");
       // during the word game typing doesn't make new letters: it floats a matching letter up onto the shelf
       if (this.wg) { this.typeToShelf(ch.toLowerCase()); return; }
       const letter = /^[a-z]$/i.test(ch);
@@ -864,14 +911,14 @@
       if (emoji) this.waveT = setTimeout(() => this.wave(emoji), 700);
       // typing one of the link words opens it (right away, while the keypress still counts as a click for
       // pop-up blockers) and brings the links screen back a moment later
-      if (this.word === "words" || this.word === "word") { this.linksT = setTimeout(() => this.startWords(), 700); this.word = ""; }
+      if (this.word === "words" || this.word === "word") { this.linksT = setTimeout(() => this.startWords("typed"), 700); this.word = ""; }
       // typing "stop" stops the beat and puts everything back on the links screen
       if (this.word === "stop") {
         this.linksT = setTimeout(() => { if (this.beat) this.stopBeat(); this.showLinks(); }, 700);
         this.word = "";
       }
       if (PILE_LINKS.includes(this.word)) {
-        this.openLink(this.word);
+        this.openLink(this.word, "typed");
         this.linksT = setTimeout(() => this.showLinks(), 700);
         this.word = "";
       }
@@ -879,6 +926,7 @@
     },
     wave(emoji) {
       if (cur !== this || !this.ok) return;
+      stats.event("secret", { word: emoji });
       const fs = this.unit * 2.2;
       const b = this.spawn(emoji, fs, W * (0.35 + Math.random() * 0.3), this.flip ? H * 0.8 : -fs);
       b.frictionAir = 0.09; b.waving = 0;
@@ -890,6 +938,7 @@
       const power = { kick: 1, snare: 0.55, hat: 0.28 }[kind];
       if (kind === "kick") sound.thud(p.x); else if (kind === "snare") sound.snare(p.x); else sound.hat(p.x, 0.12);
       let size = power;
+      if (!auto) stats.count("thumps");
       if (!auto && !this.beat && !this.wg && !this.inGame()) {
         // after a double-tap thump, single taps keep thumping for a moment; keep going for a bar and the page
         // picks up your tempo and carries on by itself. Each ring is a little bigger, so it feels like it's building.
@@ -923,6 +972,7 @@
     },
     // the beat is a bar of 8 half-beat steps; each drum (kick, snare, hat) is a layer with the steps it plays on
     startBeat() {
+      stats.event("dj");
       const ts = this.thumps.slice(-BEAT_AFTER_THUMPS);
       const gaps = ts.slice(1).map((t, i) => t.at - ts[i].at).sort((a, b) => a - b);
       const interval = clamp(gaps[Math.floor(gaps.length / 2)], 0.3, BEAT_MAX_GAP);
@@ -964,6 +1014,7 @@
     playNote(ch, x, extra = 0) {
       const b = this.beat;
       if (!b || !/^[a-z0-9]$/i.test(ch)) return false;
+      stats.first("note"); stats.count("notes");
       const now = performance.now(), step = b.stepLen * 1000;
       let at = b.acc < b.stepLen * 0.25 ? now : now + (b.stepLen - b.acc) * 1000;
       if (this.noteAt && at < this.noteAt + step - 5) at = this.noteAt + step;
@@ -1000,6 +1051,7 @@
     // double-tapping the same row at the same point in the bar takes it out again
     addDrum(p) {
       const b = this.beat, kind = this.zoneOf(p.y);
+      stats.first("drum", { kind }); stats.count("drums");
       const pos = b.step + b.acc / b.stepLen, near = Math.round(pos), n = ((near % 8) + 8) % 8;
       let L = b.layers[kind];
       if (!L) L = b.layers[kind] = { steps: new Set(), x: p.x, y: p.y };
@@ -1139,6 +1191,7 @@
     },
     boom(f) {
       const { bd, amount } = f, b = this.beat, M = window.Matter;
+      if (b) stats.event("drop");
       this.slowmo = null; this.engine.timing.timeScale = 1;
       if (!b) { this.setFlip(); return; }
       // gravity flips for two bars, so everything flies to the ceiling, then slams back down on the downbeat
@@ -1506,7 +1559,7 @@
         // the spelled letters glow for a moment, then float up onto the shelf, so it's clear why the game started
         if (this.spelled.t > 1.8 && !this.spelled.started) {
           this.spelled.started = true;
-          this.startWords();
+          this.startWords("spelled");
           this.prefillShelf(this.spelled.word, this.spelled.bodies);
         }
         if (this.spelled.t > 3.6) this.spelled = null;
@@ -1569,8 +1622,9 @@
       return outs;
     },
     // ---- word game: drag letters onto a shelf to spell words before the clock runs out
-    startWords() {
+    startWords(how = "other") {
       if (cur !== this || !this.ok || this.wg || this.inGame()) return;
+      stats.event("words_start", { how });
       const M = window.Matter;
       if (this.hoop) this.hoopRemove();
       if (this.beat) this.stopBeat();
@@ -1707,6 +1761,7 @@
       }
       const pts = WORD_POINTS[Math.min(word.length, WORD_POINTS.length - 1)];
       g.score += pts; g.found.add(word);
+      stats.count("words");
       if (word.length > g.best.length) g.best = word;
       g.bursts.push({ t: 0, text: "+" + pts + " " + word });
       sound.pop(cx);
@@ -1717,6 +1772,7 @@
     landFliers() { for (const b of this.bodies) if (b.fly) { b.fly = null; b.collisionFilter.mask = 0xffff; } },
     wordsEnd() {
       const g = this.wg;
+      stats.event("words_score", { score: g.score, words: g.found.size, round: g.rounds });
       g.game = "over";
       this.landFliers();
       this.emptyShelf(false);
@@ -1823,6 +1879,7 @@
     // ---- basketball: a hoop rises after a few throws; drop letters through the rim
     inGame() { return !!this.hoop && (this.hoop.game === "playing" || this.hoop.game === "over"); },
     onThrow() {
+      stats.count("throws");
       if (this.wg || this.beat) return;
       if (this.state !== "loose") return;
       if (!this.hoop) {
@@ -1830,10 +1887,12 @@
         if (this.throws >= this.throwsNeeded) this.hoopShow();
       } else if (this.hoop.game === "waiting" && this.hoop.rise >= 1 && !this.hoop.leaving) {
         this.hoop.game = "playing";
+        stats.event("hoop_play", { round: this.hoop.rounds });
       }
     },
     hoopShow() {
       const M = window.Matter;
+      stats.event("hoop_shown");
       const rimW = clamp(this.unit * 2.6, 72, 130), cx = W - 16 - rimW * 0.8, y = H * 0.42;
       const rims = [-1, 1].map((sgn) => M.Bodies.circle(cx + sgn * rimW / 2, y + H, 4, { isStatic: true, restitution: 0.5 }));
       rims.forEach((r) => { r.isRim = true; });
@@ -1888,12 +1947,14 @@
           const three = Math.hypot(b.releaseX - h.cx, b.releaseY - h.y) > h.r3;
           const pts = three ? 3 : 2, label = [three ? "3-pointer" : "", chuted ? "by parachute" : ""].filter(Boolean).join(" + ");
           h.score += pts; sound.basket(h.cx, three);
+          stats.count("baskets");
           h.bursts.push({ t: 0, text: "+" + pts, label });
         }
       }
     },
     hoopEnd() {
       const h = this.hoop;
+      stats.event("hoop_score", { score: h.score, round: h.rounds });
       let best = 0;
       try { best = Number(localStorage.getItem("bio-toys-hoop-points")) || 0; } catch (e) {}
       const isNew = h.score > best;
@@ -1983,7 +2044,8 @@
       }
       ctx.restore();
     },
-    openLink(word) {
+    openLink(word, how = "click") {
+      stats.event("link", { which: word, how });
       const url = PILE_URLS[word];
       if (url) {
         if (url.startsWith("mailto:")) window.location.href = url;
@@ -2007,6 +2069,7 @@
     // the reset button: stops whatever is going on and puts the name and links back
     reset() {
       if (!this.ok) return;
+      stats.event("reset");
       clearTimeout(this.linksT);
       if (this.beat) this.stopBeat();
       if (this.wg) this.wordsQuit();
@@ -2048,6 +2111,7 @@
       const M = window.Matter;
       sound.tumble(clamp(p.x, 0, W));
       this.collapsedAt = performance.now(); this.poked = true;
+      stats.first("knock"); stats.count("knocks");
       // knocking over the standing name: the links turn into real letters that float up while the name falls
       // through them, all in slow motion
       if (this.state === "set" && (this.linkShow ?? 1) > 0.5) {
@@ -2104,6 +2168,7 @@
     },
     down(p) {
       if (!this.ok) return;
+      stats.count("touches");
       this.p = p; this.held = false; this.idle = 0; this.press = null; this.shelfPress = null; this.peekPress = false;
       // on the shelf: a click scores the word, a drag pulls a letter back off
       if (this.wg && this.wg.game !== "over" && this.onShelf(p)) { this.shelfPress = { slot: this.shelfSlotAt(p) }; return; }
@@ -2126,6 +2191,7 @@
             this.holdLetter = null;
             if (this.drag !== hit || !this.beat || this.bodies.filter((b) => b.dance).length >= MAX_DANCERS) return;
             hit.dance = { t: 0, x: hit.position.x, y: hit.position.y, px: hit.position.x, py: hit.position.y, held: true };
+            stats.first("dance"); stats.count("dances");
             this.rings.push({ x: hit.position.x, y: hit.position.y, t: 0, size: 0.4 });
             sound.sparkle(hit.position.x);
           }, DANCE_HOLD * 1000);
@@ -2137,6 +2203,7 @@
           if (this.beat) { this.startBuild(p); return; }
           this.mode = (this.mode + 1) % 3;
           this.flip = this.mode === 1; this.zero = this.mode === 2 ? Infinity : 0;
+          stats.event("gravity", { mode: this.mode }); stats.count("gravity");
           if (this.state !== "loose") this.collapse({ x: W / 2, y: [0, H, H / 2][this.mode] });
           this.setFlip();
           sound.gravity(this.mode);
@@ -2186,7 +2253,7 @@
     },
     tap(p) {
       if (!this.ok || this.held) return;
-      if (this.peekPress) { this.peekPress = false; if (this.onPeek(p)) { this.peek.leaving = true; this.startWords(); } return; }
+      if (this.peekPress) { this.peekPress = false; if (this.onPeek(p)) { this.peek.leaving = true; this.startWords("tab"); } return; }
       if (this.wg) {
         // a click on the shelf scores what's on it; a tap on a letter sends it up to the shelf (handy on a phone,
         // where you can't type); letters can't be swelled during the game
@@ -2288,6 +2355,7 @@
               M.Body.setPosition(b, { x, y: -30 }); M.Body.setAngle(b, 0);
               b.collisionFilter.mask = 0xffff & ~2;
               b.frictionAir = PARACHUTE_DRAG; b.chute = true; b.chuteT = 0;
+              stats.first("chute"); stats.count("chutes");
               sound.chute(x);
             }
             continue;
@@ -2521,6 +2589,7 @@
         boardForm.hidden = true;
         boardName.blur();
         this.render(data.top, data.id);
+        stats.event("board_add", { game: this.game, score: this.score });
       } catch (e) {
         boardNote.textContent = "couldn't reach the scoreboard";
       } finally {
@@ -2566,6 +2635,7 @@
     soundBtn.setAttribute("aria-pressed", String(sound.muted));
   };
   paintSound();
+  soundBtn.addEventListener("click", () => setTimeout(() => stats.event("sound", { on: !sound.muted }), 0));
   soundBtn.addEventListener("click", () => {
     // taking the sound back after music interrupted it needs a fresh audio context; the first time, the old one is fine
     const takeBack = () => { if (wasInterrupted || (sound.ac && sound.ac.state !== "running")) { wasInterrupted = false; sound.restart(); } else sound.unlock(); };
@@ -2676,6 +2746,7 @@
   };
 
   const start = () => {
+    stats.init();
     readColors();
     resize();
     show((location.hash || "").slice(1));
