@@ -91,6 +91,12 @@
   /* drill-down panel */
   .panel { position: fixed; inset: 0 0 0 auto; width: min(560px, 100%); background: var(--bg); border-left: 1px solid var(--line); box-shadow: -10px 0 30px rgba(0,0,0,.15); overflow-y: auto; padding: 16px; z-index: 5; }
   .panel[hidden] { display: none; }
+  /* counts you can click to see who they are */
+  .count { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline dotted var(--muted); text-underline-offset: 3px; }
+  .count:hover, .count:focus-visible { color: var(--pink); text-decoration-color: var(--pink); }
+  .panel .back { font: inherit; background: none; border: 0; color: var(--muted); cursor: pointer; padding: 4px 0; margin-bottom: 4px; display: block; }
+  .panel .back:hover { color: var(--fg); }
+  .panel .plist { margin-top: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; }
   .panel .close { float: right; font: inherit; background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
   .visit { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-top: 12px; }
   .visit .meta { color: var(--muted); font-size: 13px; margin: 2px 0 8px; }
@@ -256,19 +262,27 @@
   function render() {
     const { visits, people, bots } = build(data.rows);
     const n = people.length;
+    // every count of people can be clicked to list them; each person in the list opens their visits
+    const lists = [];
+    const who = (title, ps, label = ps.length) => {
+      if (!ps.length) return esc(label);
+      lists.push({ title, people: ps });
+      return `<button class="count" data-list="${lists.length - 1}" title="see who">${esc(label)}</button>`;
+    };
+    const groupBy = (f) => { const m = new Map(); for (const p of people) { const k = f(p); m.set(k, [...(m.get(k) || []), p]); } return m; };
     $("named").textContent = data.named.length
       ? "your named devices: " + data.named.map((x) => `${x.label} (${x.visits} visit${x.visits === 1 ? "" : "s"}, last ${ago(x.last)})`).join(" · ") + (opts.labelled ? "" : " — not counted below")
       : "no named devices yet — open the site once with ?me=alia (or ?me=dad) on each device";
     if (bots.length) $("named").textContent += ` · ${bots.length} automated visit${bots.length === 1 ? "" : "s"} hidden (link checkers and crawlers)`;
     if (!visits.length) { $("body").innerHTML = `<p class="msg">nobody yet in this range</p>`; return; }
 
-    const linkPeople = people.filter((p) => p.links.length).length;
+    const linkers = people.filter((p) => p.links.length), linkPeople = linkers.length, knockers = people.filter((p) => p.did.has("knock"));
     const tiles = [
-      [n, "people"], [visits.length, "visits"],
-      [dur(median(visits.map((v) => v.secs))), "typical time on the site"],
-      [dur(median(visits.map((v) => v.active))), "typical active time"],
-      [pct(people.filter((p) => p.did.has("knock")).length, n), "knocked the name over"],
-      [linkPeople, "clicked resume, email or linkedin"],
+      [who("everyone", people, n), "people"], [esc(visits.length), "visits"],
+      [esc(dur(median(visits.map((v) => v.secs)))), "typical time on the site"],
+      [esc(dur(median(visits.map((v) => v.active)))), "typical active time"],
+      [who("knocked the name over", knockers, pct(knockers.length, n)), "knocked the name over"],
+      [who("clicked resume, email or linkedin", linkers, linkPeople), "clicked resume, email or linkedin"],
     ];
 
     // people per day
@@ -278,41 +292,45 @@
     for (let i = span - 1; i >= 0; i--) daysList.push(dayKey(Date.now() - i * 86400000));
     const perDay = new Map(daysList.map((d) => [d, { people: new Set(), visits: 0 }]));
     for (const v of visits) { const b = perDay.get(dayKey(v.start)); if (b) { b.people.add(v.visitor); b.visits++; } }
+    // clicking a day lists who came that day
+    const dayPeople = (d) => people.filter((p) => perDay.get(d).people.has(p.id));
 
     // the funnel: of the people who came, how far did they get
     const funnel = [
-      ["arrived", n],
-      ["knocked the name over", people.filter((p) => p.did.has("knock")).length],
-      ["played a game or DJ mode", people.filter((p) => played(p.did)).length],
-      ["clicked resume, email or linkedin", linkPeople],
+      ["arrived", people],
+      ["knocked the name over", knockers],
+      ["played a game or DJ mode", people.filter((p) => played(p.did))],
+      ["clicked resume, email or linkedin", linkers],
     ];
 
     // what people did, grouped by part of the site; each mode reads top to bottom in the order you'd do it.
     // "of those who started" = share of the people who reached that mode's first row
-    const reached = (key) => people.filter((p) => p.keys.has(key)).length;
+    const reachedBy = (key) => people.filter((p) => p.keys.has(key)), reached = (key) => reachedBy(key).length;
     const total = (it) => it.tally
       ? visits.reduce((a, v) => a + (v.tally[it.tally] || 0), 0)
       : visits.reduce((a, v) => a + v.events.filter((e) => (e.event === it.key.split(":")[0]) && (!it.key.includes(":") || it.key.split(":")[1] === (e.d.which || e.d.game))).length, 0);
     const groups = GROUPS.map((g) => {
       const items = g.items.map((it) => ({ ...it, people: reached(it.key), total: total(it) }));
-      const starters = g.start ? reached(g.start) : people.filter((p) => g.items.some((it) => p.keys.has(it.key))).length;
-      return { ...g, items, starters };
+      const startList = g.start ? reachedBy(g.start) : people.filter((p) => g.items.some((it) => p.keys.has(it.key)));
+      return { ...g, items, starters: startList.length, startList };
     });
 
     const clicks = visits.flatMap((v) => v.events.filter((e) => e.event === "link").map((e) => ({ e, v }))).sort((a, b) => b.e.ts - a.e.ts);
     const count = (xs) => { const m = new Map(); for (const x of xs) m.set(x, (m.get(x) || 0) + 1); return [...m].sort((a, b) => b[1] - a[1]); };
-    const sources = count(people.map((p) => p.ref || "direct / unknown"));
+    const sourceOf = (p) => p.ref || "direct / unknown", placeOf = (p) => p.place || "unknown";
+    const sources = count(people.map(sourceOf));
     // devices in a fixed order, so each always keeps its colour
     const DEV = ["phone", "computer", "tablet"];
     const devices = DEV.map((d) => [d, people.filter((p) => p.device === d).length]).filter(([, v]) => v);
-    const places = count(people.map((p) => p.place || "unknown")).slice(0, 10);
+    const places = count(people.map(placeOf)).slice(0, 10);
+    const byCard = { "where people came from": groupBy(sourceOf), devices: groupBy((p) => p.device), places: groupBy(placeOf) };
 
     $("body").innerHTML = `
-      <div class="tiles">${tiles.map(([v, k]) => `<div class="tile"><div class="v">${esc(v)}</div><div class="k">${esc(k)}</div></div>`).join("")}</div>
+      <div class="tiles">${tiles.map(([v, k]) => `<div class="tile"><div class="v">${v}</div><div class="k">${esc(k)}</div></div>`).join("")}</div>
       <div class="card"><h2>people per day</h2><div class="chart" id="chart"></div></div>
       <div class="grid2">
         <div class="card"><h2>how far people got</h2><div class="funnel">${funnel.map(([k, v]) => `
-          <div class="step"><span>${esc(k)}</span><div class="track"><div class="fill" style="width:${n ? (100 * v) / n : 0}%"></div></div><span class="pct">${v} · ${pct(v, n)}</span></div>`).join("")}</div></div>
+          <div class="step"><span>${esc(k)}</span><div class="track"><div class="fill" style="width:${n ? (100 * v.length) / n : 0}%"></div></div><span class="pct">${who(k, v)} · ${pct(v.length, n)}</span></div>`).join("")}</div></div>
         <div class="card"><h2>link clicks</h2>${clicks.length ? `<div class="scroll"><table><tr><th>when</th><th>link</th><th>who</th><th>from</th></tr>${clicks.slice(0, 12).map(({ e, v }) => `
           <tr class="click" data-person="${esc(v.visitor)}"><td>${esc(ago(e.ts))}</td><td>${esc(e.d.which)}</td><td>${esc(nameOf(v.visitor, v.label))}</td><td>${esc([v.city, v.country].filter(Boolean).join(", "))}${v.network ? " · " + esc(v.network) : ""}</td></tr>`).join("")}</table></div>` : `<p class="empty">no clicks yet</p>`}</div>
       </div>
@@ -321,9 +339,9 @@
       <div class="card"><h2>what people did</h2><div class="scroll"><table>
         <tr><th></th><th class="n">people</th><th>of everyone</th><th title="share of the people who did the first thing in that group">of those who got that far</th><th class="n">total</th></tr>
         ${groups.map((g) => `
-          <tr class="group"><td colspan="5">${g.icon} ${esc(g.name)} <span class="sub">— ${g.starters} ${g.starters === 1 ? "person" : "people"}, ${pct(g.starters, n)}${g.start ? "" : " (open from the start, so there's no first step)"}</span></td></tr>
+          <tr class="group"><td colspan="5">${g.icon} ${esc(g.name)} <span class="sub">— ${who(g.icon + " " + g.name, g.startList)} ${g.starters === 1 ? "person" : "people"}, ${pct(g.starters, n)}${g.start ? "" : " (open from the start, so there's no first step)"}</span></td></tr>
           ${g.items.map((it) => `
-          <tr class="item"><td>${esc(it.name)}</td><td class="n">${it.people}</td>
+          <tr class="item"><td>${esc(it.name)}</td><td class="n">${who(it.name, reachedBy(it.key))}</td>
             <td><span class="mini"><i style="width:${n ? (100 * it.people) / n : 0}%"></i></span>${pct(it.people, n)}</td>
             <td class="${g.start && it.key !== g.start ? "" : "muted"}">${g.start && it.key !== g.start
               ? `<span class="mini within"><i style="width:${g.starters ? (100 * it.people) / g.starters : 0}%"></i></span>${pct(it.people, g.starters)}` : "–"}</td>
@@ -342,15 +360,17 @@
         <div class="card"><h2>${title}</h2>
           ${title === "devices" ? `<div class="split" role="img" aria-label="${esc(devices.map(([k, v]) => k + " " + pct(v, n)).join(", "))}">${devices.map(([k, v]) => `<i title="${esc(k)}: ${v} (${pct(v, n)})" style="flex:${v};background:var(--dev-${k})"></i>`).join("")}</div>` : ""}
           <table><tr><th></th><th class="n">people</th><th class="n">share</th></tr>${list.map(([k, v]) => `
-          <tr><td>${title === "devices" ? `<span class="sw" style="background:var(--dev-${k})"></span>` : ""}${esc(k)}</td><td class="n">${v}</td><td class="n">${pct(v, n)}</td></tr>`).join("")}</table></div>`).join("")}
+          <tr><td>${title === "devices" ? `<span class="sw" style="background:var(--dev-${k})"></span>` : ""}${esc(k)}</td><td class="n">${who(title + ": " + k, byCard[title].get(k) || [], v)}</td><td class="n">${pct(v, n)}</td></tr>`).join("")}</table></div>`).join("")}
       </div>`;
 
-    drawChart($("chart"), daysList.map((d) => ({ d, v: perDay.get(d).people.size, visits: perDay.get(d).visits })));
+    drawChart($("chart"), daysList.map((d) => ({ d, v: perDay.get(d).people.size, visits: perDay.get(d).visits })),
+      (d) => { const ps = dayPeople(d); if (ps.length) openList("people on " + d, ps); });
     for (const tr of document.querySelectorAll("[data-person]")) tr.addEventListener("click", () => openPerson(people.find((p) => p.id === tr.dataset.person)));
+    for (const b of document.querySelectorAll("[data-list]")) b.addEventListener("click", () => { const l = lists[+b.dataset.list]; openList(l.title, l.people); });
   }
 
   // one bar per day; hover (or tap) a day for its numbers
-  function drawChart(el, pts) {
+  function drawChart(el, pts, onPick) {
     const Wd = 900, Ht = 180, padL = 28, padB = 22, padT = 8, max = Math.max(1, ...pts.map((p) => p.v));
     const step = Math.max(1, Math.ceil(max / 4)), top = Math.ceil(max / step) * step;
     const bw = (Wd - padL) / pts.length, y = (v) => padT + (Ht - padT - padB) * (1 - v / top);
@@ -371,14 +391,33 @@
       el.querySelectorAll("path.bar").forEach((b) => b.style.fill = b.dataset.i == i ? "var(--bar-hover)" : "var(--bar)");
     };
     el.addEventListener("pointermove", (e) => { const i = e.target.dataset && e.target.dataset.i; if (i != null) show(+i); });
+    el.addEventListener("click", (e) => { const i = e.target.dataset && e.target.dataset.i; if (i != null && pts[+i].v) onPick(pts[+i].d); });
+    el.style.cursor = "pointer";
     el.addEventListener("pointerleave", () => { tip.hidden = true; el.querySelectorAll("path.bar").forEach((b) => b.style.fill = "var(--bar)"); });
   }
 
-  // a person's visits, newest first, each with its timeline
-  function openPerson(p) {
+  // a list of people (behind any count you click), newest first; click one to see their visits
+  function openList(title, ps) {
+    const panel = $("panel"), list = [...ps].sort((a, b) => b.last - a.last);
+    panel.innerHTML = `<button class="close" id="close">close</button>
+      <h1>${esc(title)}</h1>
+      <div class="sub">${list.length} ${list.length === 1 ? "person" : "people"} · click one to see their visits</div>
+      <div class="plist"><table>
+        <tr><th>who</th><th class="n">visits</th><th>last seen</th><th class="n">time</th><th>where</th></tr>
+        ${list.map((p) => `<tr class="click" data-pick="${esc(p.id)}"><td class="who">${esc(short(p))}</td><td class="n">${p.visits.length}</td><td>${esc(ago(p.last))}</td>
+          <td class="n">${dur(p.secs)}</td><td>${esc([p.place, p.device].filter(Boolean).join(" · "))}</td></tr>`).join("")}
+      </table></div>`;
+    panel.hidden = false; panel.scrollTop = 0;
+    $("close").addEventListener("click", () => { panel.hidden = true; });
+    for (const tr of panel.querySelectorAll("[data-pick]")) tr.addEventListener("click", () => openPerson(list.find((p) => p.id === tr.dataset.pick), () => openList(title, ps), title));
+  }
+
+  // a person's visits, newest first, each with its timeline; when opened from a list, a back link returns to it
+  function openPerson(p, back, backTo) {
     if (!p) return;
     const panel = $("panel");
     panel.innerHTML = `<button class="close" id="close">close</button>
+      ${back ? `<button class="back" id="back">← ${esc(backTo || "back")}</button>` : ""}
       <h1>${esc(short(p))}</h1>
       <form class="rename" id="rename"><span>name</span><input id="renameInput" maxlength="24" placeholder="who is this?" value="${esc((data.names && data.names[p.id]) || "")}"><button type="submit">save</button><span id="renameMsg"></span></form>
       <div class="sub">${p.visits.length} visit${p.visits.length === 1 ? "" : "s"} · first ${esc(when(p.first))} · ${esc([p.place, p.device].filter(Boolean).join(" · "))}${p.network ? " · " + esc(p.network) : ""}</div>
@@ -389,8 +428,9 @@
           <ol class="timeline">${v.events.map((e) => `<li><span class="t">+${dur((e.ts - v.start) / 1000)}</span><span>${esc(say(e))}</span></li>`).join("")}</ol>
           ${counts ? `<div class="counts">${esc(counts)}</div>` : ""}</div>`;
       }).join("")}`;
-    panel.hidden = false;
+    panel.hidden = false; panel.scrollTop = 0;
     $("close").addEventListener("click", () => { panel.hidden = true; });
+    if (back) $("back").addEventListener("click", back);
     // naming someone: saved on the server, then the page redraws with the new name
     $("rename").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -402,7 +442,7 @@
         data.names = data.names || {};
         if (name) data.names[p.id] = name; else delete data.names[p.id];
         render();
-        openPerson(build(data.rows).people.find((x) => x.id === p.id));
+        openPerson(build(data.rows).people.find((x) => x.id === p.id), back, backTo);
       } catch (er) { $("renameMsg").textContent = "couldn't save"; }
     });
   }
