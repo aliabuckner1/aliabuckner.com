@@ -1265,9 +1265,28 @@
       const circleMax = clamp(Math.floor((W - 40) / (this.layouts[0].fs * 1.2 + 8)), 3, CIRCLE_MAX);
       const mode = n === 1 ? "solo" : n === 2 ? "pair" : n === 3 ? "wave" : n <= circleMax ? "circle" : "march";
       // the march: everyone follows a path around the inside edge of the screen, feet always against the edge
+      // it's a conga line: it sets off from where the dancers already are (the rightmost leads, walking right along the
+      // floor), whoever is in front stays in front, and anyone joining later goes to the back
       const marchSpacing = Math.max(...dims.map((d) => d.w + d.h * 0.6)) + 10;
-      const lead = dims[0], leadP = 2 * (W - 2 * (lead.leg + lead.h / 2)) + 2 * (H - 2 * (lead.leg + lead.h / 2));
-      const marchU = (beats * MARCH_PX_PER_BEAT) / leadP;
+      if (mode === "march") {
+        if (this.marchFor !== "march" || !this.marchLine) {
+          // the ones already dancing keep their left-to-right order (rightmost in front); whoever just joined goes to the back
+          const newest = D.reduce((a, b) => (b.dance.t < a.dance.t ? b : a));
+          this.marchLine = [...D.filter((b) => b !== newest).sort((a, b) => b.dance.px - a.dance.px), newest];
+          this.marchStart = null; this.marchSince = performance.now();
+        } else {
+          this.marchLine = this.marchLine.filter((b) => D.includes(b));
+          for (const b of D) if (!this.marchLine.includes(b)) this.marchLine.push(b);
+        }
+      }
+      this.marchFor = mode;
+      const leadBody = mode === "march" ? this.marchLine[0] : order[0], lead = this.danceDims(leadBody);
+      const leadIn = lead.leg + lead.h / 2, leadP = 2 * (W - 2 * leadIn) + 2 * (H - 2 * leadIn);
+      if (mode === "march" && this.marchStart == null) {
+        // the point on the path where the leader is standing now, so nobody has to jump to start walking
+        this.marchStart = clamp(leadBody.dance.px - leadIn, 0, W - 2 * leadIn) / leadP - (beats * MARCH_PX_PER_BEAT) / leadP;
+      }
+      const marchU = (beats * MARCH_PX_PER_BEAT) / leadP + (this.marchStart || 0);
       order.forEach((b, k) => {
         const d = b.dance, dm = dims[k];
         let tx, ty, angle = 0, scale = 1, depth = 0, off = 0, arms = "linked", kick = 0;
@@ -1298,12 +1317,14 @@
           angle = -Math.cos(th) * 0.1;
         } else {
           arms = "free";
-          const at = this.edgePath(marchU - (k * marchSpacing) / leadP, dm.leg + dm.h / 2);
+          const place = this.marchLine.indexOf(b);
+          const at = this.edgePath(marchU - (place * marchSpacing) / leadP, dm.leg + dm.h / 2);
           const lift = bounce(0) * 0.35;
           tx = at.x - Math.sin(at.angle) * lift * -1; ty = at.y - Math.cos(at.angle) * lift;
           angle = at.angle + Math.sin(beats * Math.PI) * 0.08;
           // the line wraps around the corners, so let each dancer jump straight there rather than glide across
-          if (Math.hypot(tx - d.px, ty - d.py) > 120) { d.px = tx; d.py = ty; }
+          // (but as the line forms, and when someone has only just joined, they glide into place instead)
+          if (Math.hypot(tx - d.px, ty - d.py) > 120 && d.t > 1.2 && performance.now() - this.marchSince > 1200) { d.px = tx; d.py = ty; }
         }
         if (this.flip && !floating && mode !== "march") angle += Math.PI;
         // glide into place rather than jumping
