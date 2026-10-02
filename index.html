@@ -185,7 +185,7 @@
   const GRAVITY_MODES = ["gravity: normal", "gravity: upside down", "gravity: off"]; // press and hold cycles through these
   const PARACHUTE_DRAG = 0.18; // higher is a slower, floatier parachute descent
   const HOOP_FIRST_THROWS = [8, 13]; // the hoop first rises after a random number of throws in this range
-  const HOOP_AGAIN_THROWS = [20, 30]; // once it has gone, it takes this many more throws to come back
+  const HOOP_AGAIN_THROWS = [8, 13]; // once it has gone, it takes this many more throws to come back
   const HOOP_WORDS = ["hoop", "ball"]; // typing one of these summons the hoop
   const HOOP_SECONDS = 20; // length of a basketball round
   const MAX_ROUNDS = 3; // rounds per appearance of a game; after that it's "done" until the game comes back
@@ -199,9 +199,9 @@
   const WORD_POINTS = [0, 0, 0, 1, 2, 4, 7, 10, 15, 15]; // by word length
   const SHELF_SLOTS = 9;
   const SPELL_MIN = 4; // letters lined up on the floor spelling a word at least this long start the word game (3 happened too often by accident)
-  const SPELL_COOLDOWN = 120; // seconds before an accidental word can start the game again after you close it
   // after this much active play, a little "words?" tab peeks down from the top; click it to start the game
-  const PEEK_AFTER = 45, PEEK_STAY = 8, PEEK_AGAIN = 120;
+  const SPELL_COOLDOWN = 120; // seconds after a word game ends when a spelled word only asks "words?" instead of starting it
+  const PEEK_STAY = 8; // seconds the "words?" tab waits for a tap before it slides away
   // every everyday English word (common words, film-subtitle vocabulary, and their real plurals and -ed/-er forms,
   // all checked against the Scrabble dictionary) that can be made from the letters of "alia buckner"
   const WORDS = new Set("ace air ale arc are ark ban bar bin bra bun cab can car cub cue cur ear elk era ice ilk ink ire kin lab lie nab nib nil ran rib rub rue run urn able acne acre akin area aria aura back bail bake bale balk bane bank bare bark barn beak bean bear beau beck bike bile bilk blue blur bran brie buck bulk bunk burl burn cake cane care clan club clue crab crib cube curb cure curl earl earn ecru kale kiln lace lack lain lair lake lane lank lark leak lean liar lice lick lien lieu like line link lira lube luck lure lurk nail narc near neck nice nick nuke race rack rail rain rake rank real rein rice rick rile rink rube ruck ruin rule rune ulna urea aback alien alike ankle arena aural baker banal baulk biker black blank blare bleak blink bluer brace brain brake break brick brine brink cabal cabin cable cairn canal caulk clank clean clear clerk clink clunk crane crank creak cruel incur inure lance learn libra liken liner lucre lunar nacre nicer relic renal ruble runic ulcer uncle urban urine aerial arable arcane backer banker bicker buckle bunker burial carnal eclair lacuna lancer linear nebula neural nickel nubile nuclei racial rankle unable unlace unlike unreal urbane urinal auricle balance blacken blacker blinker bracken buckler caliber calibre carbine clinker clunker cranial crinkle curable luckier nuclear unclear balancer barnacle incurable".split(" "));
@@ -1682,27 +1682,38 @@
       drawGlyph(b.ch, 0, 0, 0, fs, color, (b.oxu || 0) * fs, (b.oyu || 0) * fs);
       ctx.restore();
     },
-    // ---- the peek: a "words?" tab that slides down after a while of play, as an invitation to the word game
+    // ---- the ask: a "words?" tab that slides down to offer the word game. Spelling a word starts the game by itself,
+    // except within SPELL_COOLDOWN of the last game ending, when it only asks
     peekRect() { const w = 150, h = 38; return { x: W / 2 - w / 2, y: 14, w, h }; },
     onPeek(p) {
       if (!this.peek || this.peek.leaving || this.peek.rise < 1) return false;
       const r = this.peekRect();
       return p.x > r.x - 10 && p.x < r.x + r.w + 10 && p.y > r.y - 10 && p.y < r.y + r.h + 10;
     },
+    askBusy() { return !!(this.wg || this.beat || this.inGame() || this.build || this.freeze || this.state !== "loose"); },
+    ask(kind, extra = {}) {
+      if (this.peek || this.askBusy()) return false;
+      this.peek = { kind, t: 0, rise: 0, leaving: false, ...extra };
+      stats.event("ask", { game: kind });
+      sound.hoop();
+      return true;
+    },
+    // tapping the tab starts that game
+    askTapped() {
+      const pk = this.peek;
+      if (!pk) return;
+      pk.leaving = true;
+      this.startWords("asked");
+      // a word you spelled goes up onto the shelf, just as when the game starts by itself
+      if (pk.word) this.prefillShelf(pk.word, pk.bodies);
+    },
     peekStep(dt) {
-      const busy = this.wg || this.beat || this.inGame() || this.build || this.freeze || this.state !== "loose";
-      if (this.peek) {
-        const pk = this.peek;
-        pk.t += dt;
-        if (busy || pk.t > PEEK_STAY) pk.leaving = true;
-        pk.rise = clamp(pk.rise + (pk.leaving ? -dt / 0.4 : dt / 0.5), 0, 1);
-        if (pk.leaving && pk.rise <= 0) { this.peek = null; this.peekAgainAt = performance.now() + PEEK_AGAIN * 1000; this.playT = 0; }
-        return;
-      }
-      if (busy || performance.now() < Math.max(this.peekAgainAt || 0, this.wordsCooldownUntil || 0)) return;
-      // only time spent actually playing counts (something touched in the last few seconds)
-      if (this.idle < 4) this.playT = (this.playT || 0) + dt;
-      if (this.playT >= PEEK_AFTER) { this.peek = { t: 0, rise: 0, leaving: false }; sound.hoop(); }
+      const pk = this.peek;
+      if (!pk) return;
+      pk.t += dt;
+      if (this.askBusy() || pk.t > PEEK_STAY) pk.leaving = true;
+      pk.rise = clamp(pk.rise + (pk.leaving ? -dt / 0.4 : dt / 0.5), 0, 1);
+      if (pk.leaving && pk.rise <= 0) this.peek = null;
     },
     peekDraw() {
       const pk = this.peek;
@@ -1716,7 +1727,14 @@
       ctx.restore();
     },
     // ---- spelling by accident: letters lined up on the floor that spell a word glow, then the word game slides in
+    // or, just after a game, a "words?" tab asks if you'd like to play again
     spellWatch(dt) {
+      if (this.spelled && this.spelled.ask) {
+        // the letters keep glowing while the tab is up
+        this.spelled.t += dt;
+        if (!this.peek || this.peek.leaving) this.spelled = null;
+        return;
+      }
       if (this.spelled) {
         this.spelled.t += dt;
         // the spelled letters glow for a moment, then float up onto the shelf, so it's clear why the game started
@@ -1729,7 +1747,6 @@
         return;
       }
       if (this.wg || this.beat || this.build || this.freeze || this.inGame() || this.mode !== 0) return;
-      if (performance.now() < (this.wordsCooldownUntil || 0)) return;
       // not while the name is still tumbling down after a knock-over (it falls in order and could read "buck")
       if (performance.now() - (this.collapsedAt || 0) < 3500) return;
       this.watchT = (this.watchT || 0) + dt;
@@ -1766,13 +1783,22 @@
       }
       // it has to stay spelled for a moment, so a passing jumble doesn't count
       const key = found ? found.letters.map((l) => l.b.id).join(",") : "";
+      // once it has asked about these letters, it waits until they're moved apart before asking again
+      if (this.askedKey && key !== this.askedKey) this.askedKey = null;
+      if (key && key === this.askedKey) return;
       if (!found || key !== this.spellKey) { this.spellKey = key; this.spellHold = 0; return; }
       this.spellHold += 0.25;
       if (this.spellHold < 0.5) return;
       const xs = found.letters.map((l) => (l.left + l.right) / 2), tops = found.letters.map((l) => l.bottom - l.h);
-      this.spelled = { word: found.word, bodies: found.letters.map((l) => l.b), x: (Math.min(...xs) + Math.max(...xs)) / 2, y: Math.min(...tops) - 16, t: 0 };
+      const bodies = found.letters.map((l) => l.b);
       this.spellKey = ""; this.spellHold = 0;
-      sound.settle();
+      const justPlayed = performance.now() < (this.wordsCooldownUntil || 0);
+      if (justPlayed) {
+        if (this.peek) return;
+        this.askedKey = key;
+        this.ask("words", { word: found.word, bodies });
+      } else sound.settle();
+      this.spelled = { word: found.word, bodies, x: (Math.min(...xs) + Math.max(...xs)) / 2, y: Math.min(...tops) - 16, t: 0, ask: justPlayed };
     },
     // every way a run of resting letters can be read: left to right as they look (an upside-down u looks like an n,
     // and the other way round), and, when they're all upside down, right to left, as you'd read them tilting your head
@@ -2064,15 +2090,17 @@
       if (this.state !== "loose") return;
       if (!this.hoop) {
         this.throws += 1;
-        if (this.throws >= this.throwsNeeded) this.hoopShow();
+        if (this.throws >= this.throwsNeeded) this.hoopShow("throws");
       } else if (this.hoop.game === "waiting" && this.hoop.rise >= 1 && !this.hoop.leaving) {
         this.hoop.game = "playing";
         stats.event("hoop_play", { round: this.hoop.rounds });
       }
     },
-    hoopShow() {
+    hoopShow(how = "typed") {
       const M = window.Matter;
-      stats.event("hoop_shown");
+      stats.event("hoop_shown", { how });
+      // basketball always plays with normal, right-side-up gravity
+      if (this.mode !== 0) { this.mode = 0; this.flip = false; this.zero = 0; this.setFlip(); this.slowmo = { t: 0, ...FALL_SLOWMO }; sound.gravity(0); }
       const rimW = clamp(this.unit * 2.6, 72, 130), cx = W - 16 - rimW * 0.8, y = H * 0.42;
       const rims = [-1, 1].map((sgn) => M.Bodies.circle(cx + sgn * rimW / 2, y + H, 4, { isStatic: true, restitution: 0.5 }));
       rims.forEach((r) => { r.isRim = true; });
@@ -2261,6 +2289,9 @@
         return;
       }
       stats.event("reset");
+      // a reset also puts gravity back to normal, and ends the word game's cooldown: the next spelled word starts it
+      if (this.mode !== 0) { this.mode = 0; this.flip = false; this.zero = 0; this.setFlip(); }
+      this.wordsCooldownUntil = 0;
       this.showLinks();
     },
     isLast() { return this.stage === PILE_STAGES.length - 1; },
@@ -2339,6 +2370,10 @@
       // sit hidden while the name stands and flash on screen at the next knock-over
       if (this.wg) { this.landFliers(); this.wg = null; hoopCard.hidden = true; }
       this.peek = null;
+      // and every count toward something starts again from zero, so nothing pops up the moment you knock it over again
+      this.throws = 0; this.thumps = []; this.warmUntil = 0;
+      this.spelled = null; this.spellKey = ""; this.spellHold = 0; this.askedKey = null;
+      this.confetti = []; this.cheer = 0;
       sound.settle();
       this.linkDir = 1;
       this.slowmo = null; this.engine.timing.timeScale = 1;
@@ -2394,6 +2429,13 @@
         this.hold = setTimeout(() => {
           this.held = true;
           if (this.beat) { this.startBuild(p); return; }
+          // basketball is always played with normal gravity, so a hold doesn't change it while the hoop is up
+          if (this.hoop && !this.hoop.leaving) {
+            clearTimeout(this.announceT);
+            hint.textContent = "gravity stays normal for basketball";
+            this.announceT = setTimeout(() => { if (cur === this) hint.textContent = this.hint; }, 2500);
+            return;
+          }
           this.mode = (this.mode + 1) % 3;
           this.flip = this.mode === 1; this.zero = this.mode === 2 ? Infinity : 0;
           stats.event("gravity", { mode: this.mode }); stats.count("gravity");
@@ -2447,7 +2489,7 @@
     },
     tap(p) {
       if (!this.ok || this.held) return;
-      if (this.peekPress) { this.peekPress = false; if (this.onPeek(p)) { this.peek.leaving = true; this.startWords("tab"); } return; }
+      if (this.peekPress) { this.peekPress = false; if (this.onPeek(p)) this.askTapped(); return; }
       if (this.wg) {
         // a click on the shelf scores what's on it; a tap on a letter sends it up to the shelf (handy on a phone,
         // where you can't type); letters can't be swelled during the game
