@@ -127,7 +127,9 @@
   const DANCER_AT = 2; // the name's "i" is drawn as a little dancing figure
   const STICK_MAX_SPEED = 18; // a throw never sends him faster than this (px per physics step)
   const STICK_FLOAT = 0.5; // going up after a throw he feels this much less gravity, so he still floats up high, gently
-  // he's only a little person while the name is standing (and on his way down); once he lands he's a plain "i"
+  // on the live site he's only a little person while the name is standing (and on his way down) and turns into a
+  // plain "i" when he lands; with this off he stays a person the whole time
+  const DANCER_TURNS_INTO_I = true;
   const isStick = (b) => !!b && b.dancerI && !b.asLetter;
   const LINKS_LINE = "resume   email   linkedin"; // shown under the name; floats away while you play
   const NAME_Y = 0.27; // where the name sits, as a fraction of the screen height
@@ -309,6 +311,15 @@
         } catch (e) { this.ac = null; }
       }
       if (this.ac && this.ac.state === "suspended") this.ac.resume().catch(() => {});
+      // iPhones only let sound start from a finished tap (finger lifted), and want a sound played right then;
+      // a silent blip does it, and it keeps trying on each tap until the sound is actually running
+      if (this.ac && !this.primed) {
+        try {
+          const blip = this.ac.createBufferSource();
+          blip.buffer = this.ac.createBuffer(1, 1, 22050); blip.connect(this.ac.destination); blip.start(0);
+        } catch (e) {}
+        if (this.ac.state === "running") this.primed = true;
+      }
     },
     ready() { return !this.muted && this.ac && this.ac.state === "running"; },
     // a destination panned left or right by screen position, feeding both the dry mix and the room
@@ -1285,7 +1296,7 @@
       if (!isStick(b) || b.dance) return;
       // knocked over, he falls with everyone else, and the moment he lands he's a plain "i" again
       const fell = b.hx !== undefined && Math.hypot(b.position.x - b.hx, b.position.y - b.hy) > b.fs * 0.6;
-      if (!b.chute && b !== this.drag && (b.hitFloor || (fell && b.speed < 0.8))) { this.stickToLetter(b); return; }
+      if (DANCER_TURNS_INTO_I && !b.chute && b !== this.drag && (b.hitFloor || (fell && b.speed < 0.8))) { this.stickToLetter(b); return; }
       if (!b.chute && b !== this.drag) {
         // gentle throws: right after one his speed is capped, and on the way up he's a little floaty,
         // so he drifts rather than gets flung, but he comes down at the same pace as the letters
@@ -1445,30 +1456,31 @@
       this.watchT = (this.watchT || 0) + dt;
       if (this.watchT < 0.25) return;
       this.watchT = 0;
-      // resting letters from your name, upright or upside down, read left to right as they sit
-      // (typed letters don't count, or typing "buckner" would spell "buck")
-      const level = (b) => { const a = Math.abs(Math.atan2(Math.sin(b.angle), Math.cos(b.angle))); return a < 0.35 || a > Math.PI - 0.35; };
-      const L = this.bodies.filter((b) => !b.extra && !b.dance && b !== this.drag && b.speed < 0.3 && b.angularSpeed < 0.03 && level(b)).map((b) => {
-        const k = inkOf(b.ch), w = k.w * b.fs / 100, h = k.h * b.fs / 100;
-        return { b, ch: b.ch, left: b.position.x - w / 2, right: b.position.x + w / 2, bottom: b.position.y + h / 2, h, fs: b.fs };
-      }).sort((a, b) => a.left - b.left);
+      // resting letters from your name, at any tilt, in left-to-right order as they sit; each one measured by the
+      // space it takes up on screen as it lies (typed letters don't count, or typing "buckner" would spell "buck")
+      const tilt = (b) => Math.abs(Math.atan2(Math.sin(b.angle), Math.cos(b.angle)));
+      const L = this.bodies.filter((b) => !b.extra && !b.dance && b !== this.drag && b.speed < 0.5 && b.angularSpeed < 0.06).map((b) => {
+        const { min, max } = b.bounds;
+        return { b, ch: b.ch, flipped: tilt(b) > Math.PI / 2, x: b.position.x, left: min.x, right: max.x, bottom: max.y, h: max.y - min.y, fs: b.fs };
+      }).sort((a, b) => a.x - b.x);
       // chains of letters sitting side by side on the same line
       const chains = [];
       for (const l of L) {
         const c = chains.find((ch) => {
           const last = ch[ch.length - 1], gap = l.left - last.right, big = Math.max(l.fs, last.fs);
-          return Math.abs(l.bottom - last.bottom) < Math.max(l.h, last.h) * 0.3 && gap > -big * 0.15 && gap < big * 0.45;
+          return Math.abs(l.bottom - last.bottom) < Math.max(l.h, last.h) * 0.45 && gap > -big * 0.5 && gap < big * 0.9;
         });
         if (c) c.push(l); else chains.push([l]);
       }
       let found = null;
       for (const ch of chains) {
         for (let len = ch.length; len >= SPELL_MIN && !found; len--) {
-          for (let i = 0; i + len <= ch.length; i++) {
-            const word = ch.slice(i, i + len).map((l) => l.ch).join("");
+          for (let i = 0; i + len <= ch.length && !found; i++) {
+            const run = ch.slice(i, i + len);
             // only counts if you moved at least one of its letters (the name falling in order can spell "buck" by itself)
-            const moved = ch.slice(i, i + len).some((l) => (l.b.touchedAt || 0) > (this.collapsedAt || 0));
-            if (moved && WORDS.has(word)) { found = { word, letters: ch.slice(i, i + len) }; break; }
+            if (!run.some((l) => (l.b.touchedAt || 0) > (this.collapsedAt || 0))) continue;
+            const word = this.readings(run).find((w) => WORDS.has(w));
+            if (word) found = { word, letters: run };
           }
         }
         if (found) break;
@@ -1482,6 +1494,18 @@
       this.spelled = { word: found.word, bodies: found.letters.map((l) => l.b), x: (Math.min(...xs) + Math.max(...xs)) / 2, y: Math.min(...tops) - 16, t: 0 };
       this.spellKey = ""; this.spellHold = 0;
       sound.settle();
+    },
+    // every way a run of resting letters can be read: left to right as they look (an upside-down u looks like an n,
+    // and the other way round), and, when they're all upside down, right to left, as you'd read them tilting your head
+    readings(run) {
+      const LOOKS = { u: "n", n: "u" };
+      let outs = [""];
+      for (const l of run) {
+        const opts = l.flipped && LOOKS[l.ch] ? [l.ch, LOOKS[l.ch]] : [l.ch];
+        outs = outs.flatMap((w) => opts.map((c) => w + c));
+      }
+      if (run.every((l) => l.flipped)) outs.push(run.map((l) => l.ch).reverse().join(""));
+      return outs;
     },
     // ---- word game: drag letters onto a shelf to spell words before the clock runs out
     startWords() {
@@ -1528,10 +1552,18 @@
         g.bursts.push({ t: 0, text: "no more " + ch + "'s", miss: true });
         return;
       }
-      if (pick.dance) { pick.dance = null; pick.collisionFilter.group = 0; }
+      this.sendToShelf(pick);
+    },
+    // a letter floats up into the next free slot on the shelf (typed, or tapped on a phone)
+    sendToShelf(b) {
+      const g = this.wg;
+      if (!g || g.game === "over" || b.fly || b.extra) return;
+      if (g.shelf.length + this.bodies.filter((x) => x.fly).length >= SHELF_SLOTS) { g.shake = 0.35; return; }
+      if (b.dance) { b.dance = null; b.collisionFilter.group = 0; }
+      if (this.drag === b) this.drag = null;
       this.flySeq = (this.flySeq || 0) + 1;
-      pick.fly = { t: 0, sx: pick.position.x, sy: pick.position.y, sa: pick.angle, seq: this.flySeq };
-      pick.collisionFilter.mask = 0;
+      b.fly = { t: 0, sx: b.position.x, sy: b.position.y, sa: b.angle, seq: this.flySeq };
+      b.collisionFilter.mask = 0;
     },
     // letters floating up to the shelf after being typed; they land in the order they were typed
     flyStep(dt) {
@@ -2075,8 +2107,11 @@
       if (!this.ok || this.held) return;
       if (this.peekPress) { this.peekPress = false; if (this.onPeek(p)) { this.peek.leaving = true; this.startWords(); } return; }
       if (this.wg) {
-        // a click on the shelf scores what's on it; letters can't be swelled during the game
-        if (this.shelfPress) { this.shelfPress = null; this.cashIn(); }
+        // a click on the shelf scores what's on it; a tap on a letter sends it up to the shelf (handy on a phone,
+        // where you can't type); letters can't be swelled during the game
+        if (this.shelfPress) { this.shelfPress = null; this.cashIn(); return; }
+        const hit = this.hitAt(p);
+        if (hit) this.sendToShelf(hit);
         return;
       }
       if (this.state === "set" && this.isLast()) {
@@ -2413,6 +2448,9 @@
   const ptr = { down: false, x: 0, y: 0, sx: 0, sy: 0, moved: false, t: 0 };
   let lastTap = null;
   const pos = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  // a finished tap or click is what an iPhone counts as permission to play sound (touching down isn't)
+  window.addEventListener("touchend", () => sound.unlock(), { passive: true });
+  window.addEventListener("click", () => sound.unlock());
   const firstGesture = (e) => {
     sound.unlock();
     // iPhones only share tilt after asking, and only from a tap
