@@ -124,6 +124,11 @@
   // ---- the only things to edit -------------------------------------------
   // each poke-and-reassemble swaps the message for the next one
   const PILE_STAGES = ["alia buckner"]; // the letters you play with
+  const DANCER_AT = 2; // the name's "i" is drawn as a little dancing figure
+  const STICK_MAX_SPEED = 18; // a throw never sends him faster than this (px per physics step)
+  const STICK_FLOAT = 0.5; // going up after a throw he feels this much less gravity, so he still floats up high, gently
+  // he's only a little person while the name is standing (and on his way down); once he lands he's a plain "i"
+  const isStick = (b) => !!b && b.dancerI && !b.asLetter;
   const LINKS_LINE = "resume   email   linkedin"; // shown under the name; floats away while you play
   const NAME_Y = 0.27; // where the name sits, as a fraction of the screen height
   // knocking the name over plays in slow motion: this speed for SLOW_HOLD seconds, then easing back to normal over SLOW_RAMP
@@ -196,7 +201,8 @@
       C[k] = s.getPropertyValue("--" + k).trim();
     }
   };
-  const font = (px) => `600 ${px}px "Jost", system-ui, sans-serif`;
+  const WEIGHT = 600; // the name's weight (the dancer's lines are drawn to match it)
+  const font = (px) => `${WEIGHT} ${px}px "Jost", system-ui, sans-serif`;
   const linkFont = (px) => `400 ${px}px "Jost", system-ui, sans-serif`; // the links line is lighter than the name
   const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
   const ease = (t) => t * t * (3 - 2 * t);
@@ -568,6 +574,9 @@
           const a = pair.bodyA.parent, b = pair.bodyB.parent;
           if (a.hover && b.ch && !b.floater) a.hover = false;
           if (b.hover && a.ch && !a.floater) b.hover = false;
+          const floor = this.walls && this.walls[0];
+          if (a.dancerI && b === floor) a.hitFloor = true;
+          if (b.dancerI && a === floor) b.hitFloor = true;
         }
       });
       // letters bumping each other on their own stay quiet; only the letter you just let go of makes a sound,
@@ -600,13 +609,17 @@
     },
     // lays out the name and the links line for the current screen size (on start, and again on every resize)
     measure() {
-      const maxW = Math.min(W - 48, 760), base = Math.min(W, H);
+      const base = Math.min(W, H);
       // a reference letter size for typed letters, the wave and the hoop, independent of the messages
       this.unit = base * 0.09;
-      // the name, big, a little above the middle; the links line sits underneath it
-      this.layouts = [fit(PILE_STAGES[0], maxW, H * 0.3, base * 0.2, W / 2, H * NAME_Y)];
+      // the name, big, a little above the middle; the links line under it may run wider so it stays on one line
+      const wideW = Math.min(W - 40, 1150) * 0.92;
+      this.layouts = [fit(PILE_STAGES[0], Math.min(W - 40, 880) * 0.92, H * 0.3, base * 0.23, W / 2, H * NAME_Y)];
       const name = this.layouts[0];
-      this.linkLayout = fit(LINKS_LINE, maxW, H * 0.2, base * 0.085, W / 2, H * NAME_Y + name.height / 2 + base * 0.14, linkFont);
+      const room = name.fs * 0.13;
+      const dy = name.glyphs[DANCER_AT].y; // only the dancer's own line makes room (the name can wrap on a phone)
+      name.glyphs.forEach((g, k) => { if (g.y !== dy) return; if (k < DANCER_AT) g.x -= room; else if (k > DANCER_AT) g.x += room; });
+      this.linkLayout = fit(LINKS_LINE, wideW, H * 0.2, base * 0.085, W / 2, H * NAME_Y + name.height / 2 + base * 0.14, linkFont);
       this.linkSpeed = this.linkLayout.glyphs.map(() => 1 + Math.random() * 0.6);
       this.linkSpin = this.linkLayout.glyphs.map(() => (Math.random() - 0.5) * 1.2);
       // link boxes: glyphs come back in reading order, so split them by word length
@@ -698,6 +711,7 @@
         const y = !rain ? hy : this.flip ? H * 0.55 + Math.random() * H * 0.4 : -30 - Math.random() * H * 0.9;
         const b = this.letterBody(g.ch, l.fs, x, y);
         b.hx = hx; b.hy = hy; b.stage = stage; b.gi = gi;
+        if (stage === 0 && gi === DANCER_AT) { b.dancerI = true; b.restitution = 0.1; b.frictionAir = 0.012; b.airAmt = 0; b.squash = 0; }
         if (rain && !this.flip) { b.entering = true; b.collisionFilter.mask = 0xffff & ~2; }
         if (rain && this.zero > 0) M.Body.setVelocity(b, { x: (Math.random() - 0.5), y: 3 + Math.random() * 4 });
         return b;
@@ -834,6 +848,7 @@
       this.idle = 0;
       const reach = Math.max(W, H) * 0.35 * (kind === "kick" ? 1 : kind === "snare" ? 0.7 : 0.45);
       for (const b of this.bodies) {
+        if (isStick(b) && (auto || this.beat)) continue; // in DJ mode the dancer keeps his feet on the floor
         if (b.floater) continue; // the link letters are on their way out; thumps don't keep them in play
         const dx = b.position.x - p.x, d = Math.hypot(dx, b.position.y - p.y) || 1;
         const near = Math.exp(-d / reach);
@@ -973,7 +988,13 @@
       const ctrl = (e) => ({ x: e.x * 1.08, y: -L - h * 0.95 + Math.abs(e.x / r) * h * 0.1 });
       // rigging lines from every seam down to the letter
       ctx.strokeStyle = C.muted; ctx.lineWidth = 0.8; ctx.globalAlpha = 0.8 * fold;
-      for (const e of edge) { ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(0, 0); ctx.stroke(); }
+      // the dancer holds the lines in his two raised hands; letters have them tied to the top
+      const hands = isStick(b) ? this.stickHands(b) : null;
+      edge.forEach((e, i) => {
+        const to = !hands ? { x: 0, y: 0 } : i < N / 2 ? hands[0] : i > N / 2 ? hands[1] : null;
+        if (!to) return;
+        ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(to.x, to.y); ctx.stroke();
+      });
       ctx.globalAlpha = fold;
       const silhouette = () => {
         ctx.beginPath(); ctx.moveTo(apex.x, apex.y);
@@ -1103,7 +1124,7 @@
     // ---- dancing letters: hold a letter still for a second, let go, and it dances on stick legs.
     // Dancers never collide with each other, and groups dance together: 2 are partners, 3 do the wave,
     // 4-5 hold hands in a turning circle, 6 do a kickline.
-    danceDims(b) { const k = inkOf(b.ch), w = k.w * b.fs / 100, h = k.h * b.fs / 100; return { w, h, leg: h * 0.45 }; },
+    danceDims(b) { const k = inkOf(b.ch), w = k.w * b.fs / 100, h = k.h * b.fs / 100; return { w, h, leg: isStick(b) ? 0 : h * 0.45 }; },
     danceStep(dt) {
       const M = window.Matter;
       this.danceT = (this.danceT || 0) + dt;
@@ -1219,6 +1240,11 @@
     // where a dancer's hand is on screen (side -1 left, 1 right), for drawing held hands
     handAt(b, side) {
       const d = b.dance, dm = this.danceDims(b), sc = d.scale || 1;
+      if (isStick(b)) {
+        const u = dm.h / 51, hx = side * 21 * u, hy = ((d.arms === "shoulders" ? 25 : 37) - 34.4) * u;
+        const c = Math.cos(b.angle), sn = Math.sin(b.angle);
+        return { x: b.position.x + (hx * c - hy * sn) * sc, y: b.position.y + (hx * sn + hy * c) * sc };
+      }
       const lx = side * (dm.w * 0.45 + dm.h * 0.3), ly = d.arms === "shoulders" ? -dm.h * 0.12 : dm.h * 0.08;
       const c = Math.cos(b.angle), sn = Math.sin(b.angle);
       return { x: b.position.x + (lx * c - ly * sn) * sc, y: b.position.y + (lx * sn + ly * c) * sc };
@@ -1252,7 +1278,89 @@
       if (d.held) return C.pink;
       return [C.pink, C.sun, C.sea][Math.floor(this.danceClock() + (d.off || 0)) % 3];
     },
+    // the dancer always ends up on his feet: he turns upright in the air like a cat, hops back up if he's
+    // tipped over on the floor, throws his arms up while flying, dangles when carried and squashes on landing
+    stickStep(dt) {
+      const M = window.Matter, b = this.bodies.find((x) => x.dancerI);
+      if (!isStick(b) || b.dance) return;
+      // knocked over, he falls with everyone else, and the moment he lands he's a plain "i" again
+      const fell = b.hx !== undefined && Math.hypot(b.position.x - b.hx, b.position.y - b.hy) > b.fs * 0.6;
+      if (!b.chute && b !== this.drag && (b.hitFloor || (fell && b.speed < 0.8))) { this.stickToLetter(b); return; }
+      if (!b.chute && b !== this.drag) {
+        // gentle throws: right after one his speed is capped, and on the way up he's a little floaty,
+        // so he drifts rather than gets flung, but he comes down at the same pace as the letters
+        const gg = this.engine.gravity;
+        if (b.releaseAt && performance.now() - b.releaseAt < 1500 && b.speed > STICK_MAX_SPEED) M.Body.setVelocity(b, { x: b.velocity.x * STICK_MAX_SPEED / b.speed, y: b.velocity.y * STICK_MAX_SPEED / b.speed });
+        if (b.velocity.x * gg.x + b.velocity.y * gg.y < 0) M.Body.applyForce(b, b.position, { x: -b.mass * 0.001 * gg.x * STICK_FLOAT, y: -b.mass * 0.001 * gg.y * STICK_FLOAT });
+      }
+      const g = this.engine.gravity, gm = Math.hypot(g.x, g.y);
+      const target = gm > 0.2 ? Math.atan2(-g.x, g.y) : 0;
+      let diff = target - b.angle;
+      diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      const air = b.speed > 2.2 || b === this.drag;
+      const k = air ? 0.12 : 0.22;
+      M.Body.setAngularVelocity(b, b.angularVelocity + (diff * 0.08 - b.angularVelocity) * k);
+      const now = performance.now();
+      if (!air && Math.abs(diff) > 0.5 && gm > 0.2 && now - (b.hopAt || 0) > 700) {
+        b.hopAt = now;
+        M.Body.setVelocity(b, { x: b.velocity.x - g.x / gm * 6, y: b.velocity.y - g.y / gm * 6 });
+      }
+      if (b.wasAir && !air && b !== this.drag) b.squash = 1;
+      b.wasAir = air;
+      b.squash = Math.max(0, (b.squash || 0) - dt * 4);
+      b.airAmt = (b.airAmt || 0) + ((air ? 1 : 0) - (b.airAmt || 0)) * Math.min(1, dt * 10);
+    },
+    stickToLetter(b) {
+      b.asLetter = true; b.restitution = 0.35; b.frictionAir = 0.012; b.squash = 0;
+      this.rings.push({ x: b.position.x, y: b.position.y, t: 0, size: 0.25 }); // a little poof
+    },
+    // his raised hands while hanging from a parachute, in drawChute's frame (which sits b.fs * 0.32 above the centre)
+    stickHands(b) {
+      const u = inkOf(b.ch).h * b.fs / 100 / 51, y = (6 - 34.4) * u + b.fs * 0.32;
+      return [{ x: (23.75 - 32.75) * u, y }, { x: (41.75 - 32.75) * u, y }];
+    },
+    drawStick(b, color) {
+      const h = inkOf(b.ch).h * b.fs / 100, u = h / 51, t = performance.now() / 1000;
+      const d = b.dance, beats = d && !d.held ? this.danceClock() + (d.off || 0) : this.beat && !b.chute && b !== this.drag ? this.danceClock() : null;
+      const swing = beats !== null ? Math.sin(beats * Math.PI * 2) : Math.sin(t * Math.PI / 0.55); // on the beat when dancing
+      const sway = this.state === "set" ? Math.sin(t * Math.PI / 1.1) * 0.07 : 0;
+      const linked = d && !d.held && d.arms !== "free", gripping = b.chute;
+      ctx.save();
+      ctx.translate(b.position.x, b.position.y); ctx.rotate(b.angle);
+      if (d) ctx.scale(d.scale || 1, d.scale || 1);
+      // grooving on his own to the beat: a little bounce on every beat
+      if (beats !== null && !d) ctx.translate(0, -Math.abs(Math.sin(Math.PI * beats)) * h * 0.08);
+      const sq = d ? 0 : b.squash || 0, a = d || gripping ? 0 : b.airAmt || 0, carried = b === this.drag;
+      ctx.translate(0, h / 2); ctx.rotate(sway); ctx.scale(1 + 0.18 * sq, 1 - 0.22 * sq); ctx.translate(0, -h / 2); // sways and squashes from the feet
+      ctx.scale(u, u); ctx.translate(-32.75, -34.4);
+      ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      const thin = Math.min(1, 0.55 + WEIGHT / 1500); // lighter fonts get a lighter dancer
+      const poly = (pts, w) => { ctx.lineWidth = w * thin; ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); };
+      const limb = (px, py, pts, r, w) => { ctx.save(); ctx.translate(px, py); ctx.rotate(r); ctx.translate(-px, -py); poly(pts, w); ctx.restore(); };
+      const mix = (d, f) => d + (f - d) * a;
+      // in the air both arms go up (wheee); dancing, the legs step to the beat; carried or on a parachute, they swing
+      const kick = carried ? Math.sin(t * 7) * 0.35 : gripping ? Math.sin(t * 2.6) * 0.18 : beats !== null ? Math.max(0, swing) * 0.3 : 0;
+      poly([[32.75, 25], [32.75, 41.25]], 7.75);
+      if (gripping) {
+        // both hands up, holding the parachute lines
+        poly([[32, 26.9], [26.5, 16], [23.75, 6]], 3.5);
+        poly([[33.75, 28.5], [39, 16], [41.75, 6]], 3.5);
+      } else if (linked) {
+        // reaching out to hold the neighbours' hands (or over their shoulders)
+        const hy = d.arms === "shoulders" ? 25 : 37;
+        poly([[32, 26.9], [22, (26.9 + hy) / 2 + 1], [11.75, hy]], 3.5);
+        poly([[33.75, 28.5], [43.5, (28.5 + hy) / 2 + 1], [53.75, hy]], 3.5);
+      } else {
+        limb(32, 26.9, [[32, 26.9], [21.25, 18.75], [18, 5]], mix(0.07 + 0.245 * swing, 0.3), 3.5);
+        limb(33.75, 28.5, [[33.75, 28.5], [45.25, 30], [52.75, 21.25]], mix(-0.035 - 0.245 * swing, -1.05), 3.5);
+      }
+      limb(31.75, 41.25, [[31.75, 41.25], [30, 52.5], [31.75, 58.75]], mix(0, 0.12) + kick, 3.75);
+      limb(33.75, 41.25, [[33.75, 41.25], [41.5, 48.75], [40.25, 58.1]], mix(0, 0.15) - kick, 3.75);
+      ctx.beginPath(); ctx.arc(32.75, 14.5, 5.75 * (0.4 + 0.6 * thin), 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    },
     drawDancer(b) {
+      if (isStick(b)) { this.drawStick(b, this.danceColor(b)); return; }
       const d = b.dance, fs = b.fs, { w, h, leg } = this.danceDims(b);
       const beats = d.held ? 0 : this.danceClock() + (d.off || 0), ph = beats % 1, n = Math.floor(beats);
       const color = this.danceColor(b), sq = d.held ? 0 : Math.cos(ph * Math.PI * 2), sc = d.scale || 1;
@@ -1826,7 +1934,7 @@
     collapse(p) {
       const M = window.Matter;
       sound.tumble(clamp(p.x, 0, W));
-      this.collapsedAt = performance.now();
+      this.collapsedAt = performance.now(); this.poked = true;
       // knocking over the standing name: the links turn into real letters that float up while the name falls
       // through them, all in slow motion
       if (this.state === "set" && (this.linkShow ?? 1) > 0.5) {
@@ -1878,6 +1986,7 @@
       for (const b of this.bodies) {
         if (b.grow) { M.Body.scale(b, 1 / b.grow, 1 / b.grow); b.fs /= b.grow; b.grow = 0; }
         b.taps = 0; b.chute = false; b.away = 0; b.viaChute = false; b.dance = null; b.collisionFilter.group = 0; b.frictionAir = 0.012; b.entering = false; b.collisionFilter.mask = 0xffff;
+        if (b.dancerI) { b.asLetter = false; b.hitFloor = false; b.restitution = 0.1; }
       }
     },
     down(p) {
@@ -2034,6 +2143,7 @@
           if (sc >= 1) this.slowmo = null;
         }
         M.Engine.update(this.engine, Math.min(dt * 1000, 33));
+        this.stickStep(dt);
         const floatedAway = [];
         for (const b of this.bodies) {
           if (b.floater) {
@@ -2177,6 +2287,7 @@
       for (const b of this.bodies) {
         if (this.state === "loose" && (b.chute || b.deflate !== undefined)) this.drawChute(b);
         if (b.dance) { if (b.dance.held) this.drawDancer(b); continue; }
+        if (isStick(b)) { this.drawStick(b, C.pink); continue; }
         // after a drop the letters stay coloured, changing colour on every kick
         const tint = this.dropSec ? [C.pink, C.sun, C.sea][((this.dropColor || 0) + b.id) % 3] : C.fg;
         const glow = this.spelled && this.spelled.bodies.includes(b);
@@ -2212,7 +2323,8 @@
         ctx.globalAlpha = this.flash; ctx.fillStyle = C.pink; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
         this.flash = Math.max(0, this.flash - 0.03);
       }
-      if (this.drag && this.wg) drawGlyph(this.drag.ch, this.drag.position.x, this.drag.position.y, this.drag.angle, this.drag.fs, C.pink, (this.drag.oxu || 0) * this.drag.fs, (this.drag.oyu || 0) * this.drag.fs);
+      if (this.drag && this.wg && isStick(this.drag)) this.drawStick(this.drag, C.pink);
+      else if (this.drag && this.wg) drawGlyph(this.drag.ch, this.drag.position.x, this.drag.position.y, this.drag.angle, this.drag.fs, C.pink, (this.drag.oxu || 0) * this.drag.fs, (this.drag.oyu || 0) * this.drag.fs);
       // the links line: each letter rises off the top at its own speed, and comes back down the same way
       const ls = this.linkShow ?? 1;
       if (ls > 0) {
@@ -2222,9 +2334,16 @@
           drawGlyph(g.ch, g.x, g.y - off, (1 - ls) * this.linkSpin[i], L.fs, C.fg, 0, 0, linkFont);
         });
         if (ls === 1 && this.state === "set") {
-          ctx.strokeStyle = C.pink; ctx.lineWidth = 3; ctx.lineCap = "round";
-          for (const k of this.links) {
+          ctx.lineWidth = 3; ctx.lineCap = "round";
+          this.links.forEach((k, i) => {
+            ctx.strokeStyle = [C.pink, C.sun, C.sea][i % 3];
             ctx.beginPath(); ctx.moveTo(k.x0, k.y + k.fs * 0.52); ctx.lineTo(k.x1, k.y + k.fs * 0.52); ctx.stroke();
+          });
+          if (!this.poked) {
+            ctx.save(); ctx.fillStyle = C.muted; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.font = '13px "DM Mono", ui-monospace, Menlo, monospace';
+            ctx.fillText("(go on, give it a poke)", W / 2, Math.max(...L.glyphs.map((g) => g.y)) + L.fs * 1.25);
+            ctx.restore();
           }
         }
       }
