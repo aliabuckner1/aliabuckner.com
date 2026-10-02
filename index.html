@@ -17,13 +17,13 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Alia Buckner</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;600&family=DM+Mono&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600&family=DM+Mono&display=swap">
 <style>
   /* layout: one full-height stage that is the toy, with a slim switcher rail underneath */
   :root {
     --bg: #e9f1f4; --fg: #0f2a33; --muted: #557078; --line: #c5d5da;
     --pink: #e8497a; --sun: #f2b705; --sea: #4fa9bd; --foam: #ffffff;
-    --display: "Jost", system-ui, sans-serif;
+    --display: "Avenir Next", "Instrument Sans", system-ui, sans-serif;
     --mono: "DM Mono", ui-monospace, Menlo, monospace;
   }
   @media (prefers-color-scheme: dark) {
@@ -156,6 +156,7 @@
   const HOOP_WORDS = ["hoop", "ball"]; // typing one of these summons the hoop
   const HOOP_SECONDS = 20; // length of a basketball round
   const MAX_ROUNDS = 3; // rounds per appearance of a game; after that it's "done" until the game comes back
+  const WORD_ROUNDS = 2; // the word game offers "play again" once, then just "done"
   const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
   const SCORE_TEXT_SECONDS = 2.2; // how long "+2", "3-pointer" and "no dunks" stay up
   const BEAT_AFTER_THUMPS = 4; // thumps in a row (one bar) before the page picks up the rhythm and keeps drumming
@@ -203,14 +204,16 @@
       C[k] = s.getPropertyValue("--" + k).trim();
     }
   };
+  // Avenir Next on Apple devices (built in); everyone else gets Instrument Sans, loaded from Google Fonts
+  const FAMILY = '"Avenir Next", "Instrument Sans", system-ui, sans-serif';
   const WEIGHT = 600; // the name's weight (the dancer's lines are drawn to match it)
-  const font = (px) => `${WEIGHT} ${px}px "Jost", system-ui, sans-serif`;
-  const linkFont = (px) => `400 ${px}px "Jost", system-ui, sans-serif`; // the links line is lighter than the name
+  const font = (px) => `${WEIGHT} ${px}px ${FAMILY}`;
+  const linkFont = (px) => `400 ${px}px ${FAMILY}`; // the links line is lighter than the name
   const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
   const ease = (t) => t * t * (3 - 2 * t);
 
   // Wraps text and returns one entry per visible letter, centred on (cx, cy).
-  const layout = (text, maxW, fs, cx, cy, f = font) => {
+  const layout = (text, maxW, fs, cx, cy, f = font, lineH = 1.15) => {
     ctx.font = f(fs);
     const lines = [];
     let cur = "";
@@ -221,7 +224,7 @@
       if (cur && ctx.measureText(next).width > maxW) { lines.push(cur); cur = word; } else cur = next;
     }
     if (cur) lines.push(cur);
-    const lh = fs * 1.15;
+    const lh = fs * lineH;
     const height = lines.length * lh;
     const glyphs = [];
     lines.forEach((line, li) => {
@@ -235,13 +238,13 @@
     });
     return { glyphs, height, fits, fs, lines: lines.length };
   };
-  const fit = (text, maxW, maxH, fs, cx, cy, f = font) => {
-    let l = layout(text, maxW, fs, cx, cy, f);
-    while ((l.height > maxH || !l.fits) && fs > 9) { fs *= 0.93; l = layout(text, maxW, fs, cx, cy, f); }
+  const fit = (text, maxW, maxH, fs, cx, cy, f = font, lineH = 1.15) => {
+    let l = layout(text, maxW, fs, cx, cy, f, lineH);
+    while ((l.height > maxH || !l.fits) && fs > 9) { fs *= 0.93; l = layout(text, maxW, fs, cx, cy, f, lineH); }
     // balance the lines so a single word is never left alone on the last one
     let w = maxW;
     while (l.lines > 1 && w > maxW * 0.5) {
-      const t = layout(text, w * 0.95, fs, cx, cy, f);
+      const t = layout(text, w * 0.95, fs, cx, cy, f, lineH);
       if (t.lines !== l.lines || !t.fits) break;
       l = t; w *= 0.95;
     }
@@ -630,7 +633,7 @@
       const room = name.fs * 0.13;
       const dy = name.glyphs[DANCER_AT].y; // only the dancer's own line makes room (the name can wrap on a phone)
       name.glyphs.forEach((g, k) => { if (g.y !== dy) return; if (k < DANCER_AT) g.x -= room; else if (k > DANCER_AT) g.x += room; });
-      this.linkLayout = fit(LINKS_LINE, wideW, H * 0.2, base * 0.085, W / 2, H * NAME_Y + name.height / 2 + base * 0.14, linkFont);
+      this.linkLayout = fit(LINKS_LINE, wideW, H * 0.2, base * 0.085, W / 2, H * NAME_Y + name.height / 2 + base * 0.14, linkFont, 1.5);
       this.linkSpeed = this.linkLayout.glyphs.map(() => 1 + Math.random() * 0.6);
       this.linkSpin = this.linkLayout.glyphs.map(() => (Math.random() - 0.5) * 1.2);
       // link boxes: glyphs come back in reading order, so split them by word length
@@ -1142,7 +1145,7 @@
       for (const b of this.bodies) {
         if (!b.dance || b.dance.held) continue;
         b.dance.t += dt;
-        if (b.dance.t > DANCE_SECONDS) { b.dance = null; b.collisionFilter.group = 0; }
+        if (b.dance.t > DANCE_SECONDS && !b.dance.auto) { b.dance = null; b.collisionFilter.group = 0; }
       }
       const D = this.bodies.filter((b) => b.dance && !b.dance.held);
       const n = D.length;
@@ -1293,6 +1296,11 @@
     // tipped over on the floor, throws his arms up while flying, dangles when carried and squashes on landing
     stickStep(dt) {
       const M = window.Matter, b = this.bodies.find((x) => x.dancerI);
+      // when he stays a person, he's always dancing (in full disco colours) while the beat plays, rejoining whenever
+      // he's put down; letters held still join him and hold his hands
+      if (!DANCER_TURNS_INTO_I && isStick(b) && this.beat && !b.dance && b !== this.drag && !b.chute && !(b.away > 0)) {
+        b.dance = { t: 0, x: b.position.x, y: b.position.y, px: b.position.x, py: b.position.y, held: false, auto: true };
+      }
       if (!isStick(b) || b.dance) return;
       // knocked over, he falls with everyone else, and the moment he lands he's a plain "i" again
       const fell = b.hx !== undefined && Math.hypot(b.position.x - b.hx, b.position.y - b.hy) > b.fs * 0.6;
@@ -1649,20 +1657,20 @@
       hoopSub.textContent = "points in " + WORD_GAME_SECONDS + " seconds" + (g.best ? " \u00b7 longest word: " + g.best : "");
       hoopBest.textContent = isNew && g.score > 0 ? "new best" : "best: " + Math.max(best, g.score);
       hoopBest.classList.toggle("is-new", isNew && g.score > 0);
-      this.lastRound(g.rounds);
+      this.lastRound(g.rounds, WORD_ROUNDS);
       hoopCard.hidden = false;
       sound.buzzer();
       requestAnimationFrame(() => (hoopAgain.hidden ? hoopDone : hoopAgain).focus());
     },
     // after the last round of a game, the end card only offers "done"
-    lastRound(rounds) {
-      const last = rounds >= MAX_ROUNDS;
+    lastRound(rounds, max = MAX_ROUNDS) {
+      const last = rounds >= max;
       hoopAgain.hidden = last;
       if (last) hoopBest.textContent += " \u00b7 that's it for now";
     },
     wordsAgain() {
       const g = this.wg;
-      if (g.rounds >= MAX_ROUNDS) return;
+      if (g.rounds >= WORD_ROUNDS) return;
       g.rounds += 1;
       Object.assign(g, { game: "waiting", t: WORD_GAME_SECONDS, score: 0, found: new Set(), best: "", bursts: [] });
       hint.textContent = "type or drag letters onto the shelf. enter to score.";
