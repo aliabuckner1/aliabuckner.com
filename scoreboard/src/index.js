@@ -42,6 +42,7 @@ export default {
     if (req.method === "OPTIONS") return json({}, 204, origin);
     if (url.pathname === "/e" && req.method === "POST") return logEvent(req, env);
     if (url.pathname === "/stats") return stats(req, env, url, origin);
+    if (url.pathname === "/names" && req.method === "POST") return nameVisitor(req, env, origin);
     if (url.pathname === "/dashboard") return new Response(DASHBOARD, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" } });
     if (url.pathname !== "/scores") return json({ error: "not found" }, 404, origin);
 
@@ -94,6 +95,26 @@ async function stats(req, env, url, origin) {
   const given = req.headers.get("x-key") || "";
   const ok = (env.DASH_PASSWORD && given === env.DASH_PASSWORD) || (env.DASH_KEY && given === env.DASH_KEY);
   if (!ok) { await new Promise((r) => setTimeout(r, 1500)); return json({ error: "no" }, 401, origin); }
+  return statsFor(env, url, origin);
+}
+async function authorised(req, env) {
+  const given = req.headers.get("x-key") || "";
+  return (env.DASH_PASSWORD && given === env.DASH_PASSWORD) || (env.DASH_KEY && given === env.DASH_KEY);
+}
+
+// giving a visitor a name (or clearing it with an empty one); dashboard only
+async function nameVisitor(req, env, origin) {
+  if (!(await authorised(req, env))) { await new Promise((r) => setTimeout(r, 1500)); return json({ error: "no" }, 401, origin); }
+  let b;
+  try { b = await req.json(); } catch (e) { return json({ error: "bad request" }, 400, origin); }
+  const visitor = String(b.visitor || ""), name = String(b.name || "").trim().slice(0, 24);
+  if (!ID.test(visitor)) return json({ error: "which visitor?" }, 400, origin);
+  if (name) await env.DB.prepare("INSERT INTO names (visitor, name, updated) VALUES (?, ?, ?) ON CONFLICT(visitor) DO UPDATE SET name = excluded.name, updated = excluded.updated").bind(visitor, name, Date.now()).run();
+  else await env.DB.prepare("DELETE FROM names WHERE visitor = ?").bind(visitor).run();
+  return json({ ok: true }, 200, origin);
+}
+
+async function statsFor(env, url, origin) {
   const days = Math.max(0, Number(url.searchParams.get("days") ?? 30) || 0);
   const since = days ? Date.now() - days * 86_400_000 : 0;
   const labelled = url.searchParams.get("labelled") === "1", test = url.searchParams.get("test") === "1";
@@ -116,5 +137,6 @@ async function stats(req, env, url, origin) {
   const named = (await env.DB.prepare(
     `SELECT label, COUNT(DISTINCT visit) AS visits, MAX(ts) + ${shift} AS last FROM events WHERE ts >= ? AND ${demo ? "visitor LIKE 'demo%'" : "visitor NOT LIKE 'demo%'"} AND label IS NOT NULL AND label != '' GROUP BY label`
   ).bind(since - shift).all()).results;
-  return json({ days, labelled, test, demo, now: Date.now(), rows, named }, 200, origin);
+  const names = Object.fromEntries((await env.DB.prepare("SELECT visitor, name FROM names").all()).results.map((r) => [r.visitor, r.name]));
+  return json({ days, labelled, test, demo, now: Date.now(), rows, named, names }, 200, origin);
 }

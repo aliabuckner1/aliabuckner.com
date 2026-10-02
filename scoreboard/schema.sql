@@ -25,3 +25,10 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE INDEX IF NOT EXISTS events_ts ON events (ts);
 CREATE INDEX IF NOT EXISTS events_visit ON events (visit);
 CREATE INDEX IF NOT EXISTS events_event ON events (event, ts);
+
+-- names Alia gives visitors she recognises (a friend, a recruiter...); unlike a device label, named people still count
+CREATE TABLE IF NOT EXISTS names (
+  visitor TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  updated INTEGER NOT NULL
+);

@@ -89,6 +89,9 @@
   .timeline li { display: grid; grid-template-columns: 4.2em 1fr; gap: 8px; padding: 2px 0; }
   .timeline .t { color: var(--muted); text-align: right; }
   .counts { margin-top: 8px; color: var(--muted); font: 12px var(--mono); }
+  .rename { display: flex; gap: 6px; align-items: center; margin: 10px 0 2px; font-size: 13px; color: var(--muted); }
+  .rename input { font: inherit; font-size: 16px; width: 12em; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  .rename button { font: inherit; font-size: 13px; color: var(--card); background: var(--fg); border: 0; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
   .msg { padding: 40px 0; text-align: center; color: var(--muted); }
   /* the password box */
   .login { max-width: 320px; margin: 12vh auto 0; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 22px; text-align: center; }
@@ -225,7 +228,9 @@
     }
     return { visits: [...visits.values()], people: [...people.values()] };
   }
-  const short = (p) => p.label ? p.label : "#" + p.id.slice(-5);
+  // what to call someone: a name Alia gave them, else their device label, else the end of their random id
+  const nameOf = (id, label) => (data.names && data.names[id]) || label || "#" + id.slice(-5);
+  const short = (p) => nameOf(p.id, p.label);
   const played = (did) => did.has("hoop_play") || did.has("words_start") || did.has("dj");
 
   // ---- the page
@@ -287,7 +292,7 @@
         <div class="card"><h2>how far people got</h2><div class="funnel">${funnel.map(([k, v]) => `
           <div class="step"><span>${esc(k)}</span><div class="track"><div class="fill" style="width:${n ? (100 * v) / n : 0}%"></div></div><span class="pct">${v} · ${pct(v, n)}</span></div>`).join("")}</div></div>
         <div class="card"><h2>link clicks</h2>${clicks.length ? `<div class="scroll"><table><tr><th>when</th><th>link</th><th>who</th><th>from</th></tr>${clicks.slice(0, 12).map(({ e, v }) => `
-          <tr class="click" data-person="${esc(v.visitor)}"><td>${esc(ago(e.ts))}</td><td>${esc(e.d.which)}</td><td>${esc(v.label || "#" + v.visitor.slice(-5))}</td><td>${esc([v.city, v.country].filter(Boolean).join(", "))}${v.network ? " · " + esc(v.network) : ""}</td></tr>`).join("")}</table></div>` : `<p class="empty">no clicks yet</p>`}</div>
+          <tr class="click" data-person="${esc(v.visitor)}"><td>${esc(ago(e.ts))}</td><td>${esc(e.d.which)}</td><td>${esc(nameOf(v.visitor, v.label))}</td><td>${esc([v.city, v.country].filter(Boolean).join(", "))}${v.network ? " · " + esc(v.network) : ""}</td></tr>`).join("")}</table></div>` : `<p class="empty">no clicks yet</p>`}</div>
       </div>
       <div class="grid2">
       </div>
@@ -350,6 +355,7 @@
     const panel = $("panel");
     panel.innerHTML = `<button class="close" id="close">close</button>
       <h1>${esc(short(p))}</h1>
+      <form class="rename" id="rename"><span>name</span><input id="renameInput" maxlength="24" placeholder="who is this?" value="${esc((data.names && data.names[p.id]) || "")}"><button type="submit">save</button><span id="renameMsg"></span></form>
       <div class="sub">${p.visits.length} visit${p.visits.length === 1 ? "" : "s"} · first ${esc(when(p.first))} · ${esc([p.place, p.device].filter(Boolean).join(" · "))}${p.network ? " · " + esc(p.network) : ""}</div>
       ${[...p.visits].reverse().map((v) => {
         const counts = TALLY.filter(([k]) => v.tally[k]).map(([k, name]) => `${v.tally[k]} ${name}`).join(" · ");
@@ -360,6 +366,20 @@
       }).join("")}`;
     panel.hidden = false;
     $("close").addEventListener("click", () => { panel.hidden = true; });
+    // naming someone: saved on the server, then the page redraws with the new name
+    $("rename").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = $("renameInput").value.trim();
+      $("renameMsg").textContent = "saving…";
+      try {
+        const res = await fetch(API + "/names", { method: "POST", headers: { "x-key": key, "content-type": "application/json" }, body: JSON.stringify({ visitor: p.id, name }) });
+        if (!res.ok) throw new Error();
+        data.names = data.names || {};
+        if (name) data.names[p.id] = name; else delete data.names[p.id];
+        render();
+        openPerson(build(data.rows).people.find((x) => x.id === p.id));
+      } catch (er) { $("renameMsg").textContent = "couldn't save"; }
+    });
   }
   addEventListener("keydown", (e) => { if (e.key === "Escape") $("panel").hidden = true; });
 
