@@ -1,5 +1,9 @@
 <!doctype html>
 <html lang="en">
+<!--
+  if you're looking for the site's secrets...
+  go knock some letters over instead 🙂
+-->
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -174,6 +178,7 @@
   // where each link goes. Fill these in: a resume URL, "mailto:you@example.com", a LinkedIn profile URL
   const PILE_URLS = { resume: "resume.pdf", email: "mailto:aliabuckner@gmail.com", linkedin: "https://www.linkedin.com/in/aliabuckner/" };
   const PILE_SELF_FIX = 15; // seconds of no touching before the pile reassembles itself
+  const WALK_AWAY = 60; // seconds of nobody touching anything before even a game or DJ mode ends and the name comes back
   const PILE_FIRST_FIX = 5; // ...but when a new message is waiting to be revealed (the links), it only waits this long
   const POP_TAPS = 9; // taps on one letter before it pops
   const POP_MAX_SIZE = 8; // how many times its size it has swollen to on the tap before it pops
@@ -2294,6 +2299,17 @@
       this.wordsCooldownUntil = 0;
       this.showLinks();
     },
+    // everything ends and the name and links come back, as if reset had been pressed with nothing running
+    walkAway() {
+      this.untouched = 0;
+      clearTimeout(this.linksT);
+      if (this.beat) this.stopBeat();
+      if (this.wg) this.wordsQuit();
+      hoopCard.hidden = true;
+      if (this.mode !== 0) { this.mode = 0; this.flip = false; this.zero = 0; this.setFlip(); }
+      this.wordsCooldownUntil = 0;
+      if (this.state === "loose") this.showLinks();
+    },
     isLast() { return this.stage === PILE_STAGES.length - 1; },
     linkAt(p) {
       if (this.state !== "set" || this.linkShow < 1) return null;
@@ -2453,7 +2469,7 @@
     move(p, dx, dy, down) {
       // only clicks, drags and typing count as touching; just moving the mouse over the page doesn't
       this.p = p;
-      if (down) this.idle = 0;
+      if (down) { this.idle = 0; this.untouched = 0; }
       if (down && Math.hypot(dx, dy) > 3) clearTimeout(this.hold);
       if (down && Math.hypot(p.x - ptr.sx, p.y - ptr.sy) > DANCE_DRIFT) { clearTimeout(this.danceHold); this.holdLetter = null; }
       if (down && this.press && ptr.moved) { this.collapse(p); this.drag = this.press; this.press = null; }
@@ -2545,6 +2561,9 @@
       this.linkShow = clamp((this.linkShow ?? 1) + (this.linkDir > 0 ? dt / 1.4 : -dt / 0.9), 0, 1);
       this.rings = this.rings.filter((r) => r.t < 0.6);
       this.confettiStep(dt);
+      // nobody has touched anything for a minute (a game or a beat running on its own doesn't count): start over
+      this.untouched = (this.untouched || 0) + dt;
+      if (this.untouched > WALK_AWAY && !ptr.down && (this.state === "loose" || this.beat || this.wg || this.hoop)) this.walkAway();
       if (this.beat && this.state !== "loose") this.stopBeat();
       if (this.freeze) {
         this.freeze.t -= dt;
@@ -2988,6 +3007,19 @@
   // a long press shouldn't open the browser's own menu (it would cancel holding a letter)
   cv.addEventListener("contextmenu", (e) => e.preventDefault());
   cv.addEventListener("pointercancel", release);
+
+  addEventListener("pointerdown", () => { if (cur) cur.untouched = 0; }, true);
+  addEventListener("keydown", () => { if (cur) cur.untouched = 0; }, true);
+  // the page pauses while it's in a background tab, so the time away is added on when you come back: away long
+  // enough and the name has put itself back together (or the game has ended) by the time you return
+  let hiddenAt = 0;
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") { hiddenAt = performance.now(); return; }
+    if (!hiddenAt || !cur) return;
+    const away = (performance.now() - hiddenAt) / 1000;
+    hiddenAt = 0;
+    cur.idle = (cur.idle || 0) + away; cur.untouched = (cur.untouched || 0) + away;
+  });
 
   let prev = 0;
   const frame = (now) => {
