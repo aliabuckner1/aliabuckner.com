@@ -256,8 +256,10 @@
       try { if (navigator.sendBeacon && navigator.sendBeacon(STATS_URL, body)) return; } catch (e) {}
       fetch(STATS_URL, { method: "POST", body, keepalive: true, mode: "no-cors" }).catch(() => {});
     },
-    event(name, data) { this.send(name, data); },
-    first(name, data) { if (!this.seen.has(name)) { this.seen.add(name); this.send(name, data); } },
+    // each action also carries the running counts (throws, taps...), so the stats page can show what happened between actions
+    withCounts(data) { return Object.keys(this.counts).length ? { ...data, n: { ...this.counts } } : data; },
+    event(name, data) { this.send(name, this.withCounts(data)); },
+    first(name, data) { if (!this.seen.has(name)) { this.seen.add(name); this.send(name, this.withCounts(data)); } },
     count(name, n = 1) { this.counts[name] = (this.counts[name] || 0) + n; },
     tally() { this.send("tally", { secs: Math.round((Date.now() - this.start) / 1000), active: this.active, ...this.counts }); },
   };
@@ -2864,7 +2866,9 @@
         boardForm.hidden = true;
         boardName.blur();
         this.render(data.top, data.id);
-        stats.event("board_add", { game: this.game, score: this.score });
+        // the name as the board saved it (it may have been tidied up), for the stats page
+        const saved = (data.top || []).find((r) => r.id === data.id);
+        stats.event("board_add", { game: this.game, score: this.score, name: saved ? saved.name : name });
       } catch (e) {
         boardNote.textContent = "couldn't reach the scoreboard";
       } finally {

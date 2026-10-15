@@ -35,8 +35,16 @@
   .seg button { font: inherit; font-size: 13px; padding: 5px 10px; background: var(--card); color: var(--fg); border: 0; cursor: pointer; }
   .seg button + button { border-left: 1px solid var(--line); }
   .seg button[aria-pressed="true"] { background: var(--fg); color: var(--card); }
-  label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); cursor: pointer; }
+  /* exclude: quiet little checkboxes, ticked = left out */
+  .xgroup { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 13px; color: var(--muted); }
+  .xgroup .lab { margin-right: -4px; }
+  .xgroup button { font: inherit; color: var(--muted); background: none; border: 0; padding: 2px 0; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+  .xgroup button::before { content: ""; width: 11px; height: 11px; border: 1.5px solid var(--muted); border-radius: 3px; font-size: 9px; line-height: 11px; text-align: center; color: var(--card); opacity: .7; }
+  .xgroup button[aria-pressed="true"]::before { content: "✓"; background: var(--muted); border-color: var(--muted); opacity: .85; }
+  .xgroup button:hover { color: var(--fg); }
+  .xgroup .cnt { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
   .named { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+  .named:empty { display: none; }
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
   .tile { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
   .tile .v { font-size: 26px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
@@ -60,6 +68,9 @@
   th { color: var(--muted); font-weight: 400; }
   td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
   tr.click { cursor: pointer; }
+  th.sort { cursor: pointer; user-select: none; }
+  th.sort:hover { color: var(--fg); }
+  th .arrow { margin-left: 3px; font-size: 10px; }
   tr.click:hover td { background: var(--grid); }
   .who { font-weight: 600; }
   .tag { display: inline-block; padding: 0 6px; border-radius: 99px; background: var(--grid); color: var(--fg); margin: 1px 2px 1px 0; }
@@ -105,6 +116,7 @@
   .timeline { list-style: none; margin: 0; padding: 0; font: 12.5px var(--mono); }
   .timeline li { display: grid; grid-template-columns: 4.2em 1fr; gap: 8px; padding: 2px 0; }
   .timeline .t { color: var(--muted); text-align: right; }
+  .timeline li.between { color: var(--muted); font-size: 11.5px; }
   .counts { margin-top: 8px; color: var(--muted); font: 12px var(--mono); }
   .rename { display: flex; gap: 6px; align-items: center; margin: 10px 0 2px; font-size: 13px; color: var(--muted); }
   .rename input { font: inherit; font-size: 16px; width: 12em; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
@@ -128,7 +140,9 @@
       <div class="seg" id="range" role="group" aria-label="Time range">
         <button data-days="1">today</button><button data-days="7">7 days</button><button data-days="30" aria-pressed="true">30 days</button><button data-days="0">all</button>
       </div>
-      <label class="check"><input type="checkbox" id="labelled" autocomplete="off"> include my devices</label>
+      <div class="xgroup" id="exclude" role="group" aria-label="Exclude">
+        <span class="lab">exclude:</span><button data-x="bots" aria-pressed="true" title="link checkers and crawlers">bots <span class="cnt" id="xbots"></span></button><button data-x="test" aria-pressed="true">test devices <span class="cnt" id="xtest"></span></button><button data-x="quiet" aria-pressed="false" title="people who opened the page and never touched anything">inactive <span class="cnt" id="xquiet"></span></button>
+      </div>
     </div>
   </header>
   <p class="named" id="named"></p>
@@ -143,7 +157,8 @@
   try { if (key) { localStorage.setItem("stats-key", key); history.replaceState(null, "", location.pathname); } else key = localStorage.getItem("stats-key") || ""; } catch (e) {}
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const opts = { days: 30, labelled: false }; // your own devices are left out unless you tick the box
+  // what's left out: bots and your own devices by default; people who never touched anything only if you ask
+  const opts = { days: 30, labelled: false, bots: true, quiet: false }; // your own devices are left out unless you tick the box
   let data = null;
 
   // what each event means, in words; null = not shown on its own in timelines
@@ -154,7 +169,7 @@
     hoop_shown: "the hoop appeared", hoop_play: "played basketball", hoop_score: "basketball round", words_start: "started the word game",
     words_score: "word game round", board_add: "added their name to the scoreboard", link: "clicked a link",
     reset: "pressed reset", sound: "sound button", stop_game: "left a game", all_big: "made every letter as big as it goes",
-    ring: "got everyone dancing in a ring", ask: "was offered a game (words? / basketball? tab)", tally: null,
+    ring: "got everyone dancing in a ring", ask: "the “words?” tab asked them to play", tally: null,
   };
   // the "what people did" groups, in a fixed order; start = the row the rest of the group is measured against
   const GROUPS = [
@@ -183,8 +198,14 @@
     ["keys", "keys typed"], ["drums", "drums added"], ["notes", "notes played"], ["dances", "dances"], ["chutes", "parachutes"],
     ["baskets", "baskets"], ["words", "words scored"], ["gravity", "gravity changes"]];
 
+  // "1 throw", "2 throws"
+  const ONE = { "taps & drags": "tap or drag", "knock-overs": "knock-over", "letters popped": "letter popped", "keys typed": "key typed",
+    "drums added": "drum added", "notes played": "note played", "words scored": "word scored", "gravity changes": "gravity change" };
+  const howMany = (n, name) => `${n} ${n === 1 ? ONE[name] || name.replace(/s$/, "") : name}`;
   const ago = (ts) => { const s = (Date.now() - ts) / 1000; return s < 90 ? "just now" : s < 5400 ? Math.round(s / 60) + "m ago" : s < 129600 ? Math.round(s / 3600) + "h ago" : Math.round(s / 86400) + "d ago"; };
   const dur = (s) => { s = Math.round(s || 0); return s < 60 ? s + "s" : Math.floor(s / 60) + "m " + String(s % 60).padStart(2, "0") + "s"; };
+  // in tables, no time at all reads as a dash rather than "0s"
+  const durOr = (s) => (Math.round(s || 0) ? dur(s) : "–");
   const when = (ts) => new Date(ts).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   const median = (xs) => { if (!xs.length) return 0; const a = [...xs].sort((x, y) => x - y), m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
   // the average for the people who did something: 131 throws by 4 people is "33"; small numbers keep one decimal
@@ -196,8 +217,8 @@
     if (r.event === "link") return "clicked " + (d.which || "a link") + (d.how === "typed" ? " (typed it)" : "");
     if (r.event === "hoop_score") return "basketball round: " + (d.score ?? 0) + " points";
     if (r.event === "words_score") return "word game round: " + (d.score ?? 0) + " points, " + (d.words ?? 0) + " words";
-    if (r.event === "words_start") return "started the word game" + (d.how ? " (" + ({ spelled: "spelled a word on the floor", typed: "typed “word”", tab: "the words? tab" }[d.how] || d.how) + ")" : "");
-    if (r.event === "board_add") return "added their name to the " + (d.game === "words" ? "word game" : "basketball") + " board (" + d.score + ")";
+    if (r.event === "words_start") return "started the word game" + (d.how ? " (" + ({ spelled: "spelled a word on the floor", typed: "typed “word”", tab: "the words? tab", asked: "tapped “words?”" }[d.how] || d.how) + ")" : "");
+    if (r.event === "board_add") return (d.name ? `added “${d.name}”` : "added their name") + " to the " + (d.game === "words" ? "word game" : "basketball") + " board (" + d.score + ")";
     if (r.event === "secret") return "typed a secret word" + (d.word ? " (" + d.word + ")" : "");
     if (r.event === "gravity") return "changed gravity" + (d.mode != null ? " (" + ["normal", "upside down", "off"][d.mode] + ")" : "");
     if (r.event === "sound") return "turned sound " + (d.on ? "on" : "off");
@@ -208,7 +229,7 @@
 
   // automated visits (link checkers, crawlers): driven by automation software, or from a hosting / security company's
   // network without ever touching anything. People on those networks who actually play still count.
-  const HOSTING = /\b(ovh|logicweb|palo alto networks|reflectionai|digitalocean|hetzner|linode|akamai|amazon|aws|google cloud|microsoft azure|azure|oracle|cloudflare|contabo|vultr|choopa|m247|datacamp|zscaler|leaseweb|scaleway|tencent|alibaba|hostinger|ionos|godaddy|censys|shadowserver|hurricane electric|colocrossing|psychz)\b/i;
+  const HOSTING = /\b(ovh|logicweb|palo alto networks|reflectionai|digitalocean|hetzner|linode|akamai|amazon|aws|google cloud|microsoft azure|azure|oracle|cloudflare|contabo|vultr|choopa|m247|datacamp|zscaler|leaseweb|scaleway|tencent|alibaba|hostinger|ionos|godaddy|censys|shadowserver|hurricane electric|colocrossing|psychz|google llc|microsoft corporation|fine group servers|ipv netblock|egihosting|oculus networks)\b/i;
   const INTERACTIONS = new Set(["visit", "tally"]);
   const isBot = (p) => p.visits.some((v) => v.events.some((e) => e.event === "visit" && e.d.bot)) ||
     (HOSTING.test(p.network || "") && p.visits.every((v) => v.events.every((e) => INTERACTIONS.has(e.event)) && !v.active && !(v.tally.touches || v.tally.keys)));
@@ -220,12 +241,12 @@
       r.d = parse(r.data);
       let v = visits.get(r.visit);
       if (!v) {
-        v = { id: r.visit, visitor: r.visitor, label: r.label, device: r.device, country: r.country, city: r.city, network: r.network, start: r.ts, end: r.ts, events: [], tally: {}, ref: "" };
+        v = { id: r.visit, visitor: r.visitor, label: r.label, device: r.device, country: r.country, city: r.city, network: r.network, start: r.ts, end: r.ts, events: [], tally: {}, tallies: [], ref: "" };
         visits.set(r.visit, v);
       }
       v.end = Math.max(v.end, r.ts);
       if (r.event === "visit") { v.start = Math.min(v.start, r.ts); v.ref = r.d.ref || (r.d.src ? "via " + r.d.src : ""); }
-      if (r.event === "tally") { for (const [k, n] of Object.entries(r.d)) v.tally[k] = Math.max(v.tally[k] || 0, n); }
+      if (r.event === "tally") { for (const [k, n] of Object.entries(r.d)) v.tally[k] = Math.max(v.tally[k] || 0, n); v.tallies.push({ ts: r.ts, n: r.d }); }
       else v.events.push(r);
     }
     for (const v of visits.values()) {
@@ -256,15 +277,21 @@
       p.place = [last.city, last.country].filter(Boolean).join(", ");
       p.network = last.network; p.device = last.device;
       p.ref = (p.visits.find((v) => v.ref) || {}).ref || "";
+      p.boardName = (p.visits.flatMap((v) => v.events).filter((e) => e.event === "board_add" && e.d.name).pop() || { d: {} }).d.name || "";
     }
     // leave the automated visits out of everything, but say how many there were
     const all = [...people.values()], bots = all.filter(isBot), botIds = new Set(bots.map((p) => p.id));
-    return { visits: [...visits.values()].filter((v) => !botIds.has(v.visitor)), people: all.filter((p) => !botIds.has(p.id)), bots };
+    return { visits: [...visits.values()].filter((v) => !botIds.has(v.visitor)), people: all.filter((p) => !botIds.has(p.id)), bots,
+      botVisits: [...visits.values()].filter((v) => botIds.has(v.visitor)) };
   }
   // what to call someone: a name Alia gave them, else their device label, else the end of their random id
   const nameOf = (id, label) => (data.names && data.names[id]) || label || "#" + id.slice(-5);
-  const short = (p) => nameOf(p.id, p.label);
+  const short = (p) => (data.names && data.names[p.id]) || p.label || (p.boardName ? `“${p.boardName}”` : nameOf(p.id, p.label));
   const played = (did) => did.has("hoop_play") || did.has("words_start") || did.has("dj");
+
+  // the people table's order: newest first, or click a heading to sort by it (click again to flip)
+  const sortBy = { key: "last", dir: -1 };
+  const SORTS = { who: (p) => short(p).toLowerCase(), visits: (p) => p.visits.length, last: (p) => p.last, time: (p) => p.secs, active: (p) => p.active, throws: (p) => p.throws };
 
   // which parts of "what people did" are open: all closed when the page opens, and they stay as you leave them while
   // you change the date range or filters
@@ -272,7 +299,12 @@
 
   // ---- the page
   function render() {
-    const { visits, people, bots } = build(data.rows);
+    let { visits, people, bots, botVisits } = build(data.rows);
+    if (!opts.bots) { people = people.concat(bots); visits = visits.concat(botVisits); }
+    // people who opened the page and never touched it (no taps, keys, or anything but arriving), hidden if you ask
+    const untouched = (p) => p.visits.every((v) => !Math.round(v.active) && !(v.tally.touches || v.tally.keys) && v.events.every((e) => e.event === "visit"));
+    const quiet = opts.quiet ? people.filter(untouched) : [];
+    if (quiet.length) { const ids = new Set(quiet.map((p) => p.id)); people = people.filter((p) => !ids.has(p.id)); visits = visits.filter((v) => !ids.has(v.visitor)); }
     const n = people.length;
     // every count of people can be clicked to list them; each person in the list opens their visits
     const lists = [];
@@ -282,10 +314,12 @@
       return `<button class="count" data-list="${lists.length - 1}" title="see who">${esc(label)}</button>`;
     };
     const groupBy = (f) => { const m = new Map(); for (const p of people) { const k = f(p); m.set(k, [...(m.get(k) || []), p]); } return m; };
-    $("named").textContent = data.named.length
-      ? "your named devices: " + data.named.map((x) => `${x.label} (${x.visits} visit${x.visits === 1 ? "" : "s"}, last ${ago(x.last)})`).join(" · ") + (opts.labelled ? "" : " — not counted below")
-      : "no named devices yet — open the site once with ?me=alia (or ?me=dad) on each device";
-    if (bots.length) $("named").textContent += ` · ${bots.length} automated visit${bots.length === 1 ? "" : "s"} hidden (link checkers and crawlers)`;
+    // how many each "exclude" button covers, whether or not it's on
+    $("xbots").textContent = bots.length;
+    $("xtest").textContent = data.named.length;
+    $("xquiet").textContent = opts.quiet ? quiet.length : people.filter(untouched).length;
+    $("exclude").querySelector('[data-x="test"]').title = data.named.map((x) => `${x.label}: ${x.visits} visit${x.visits === 1 ? "" : "s"}, last ${ago(x.last)}`).join("\n");
+    $("named").textContent = data.named.length ? "" : "no test devices yet — open the site once with ?me=alia (or ?me=dad) on each device";
     if (!visits.length) { $("body").innerHTML = `<p class="msg">nobody yet in this range</p>`; return; }
 
     const linkers = people.filter((p) => p.links.length), linkPeople = linkers.length, knockers = people.filter((p) => p.did.has("knock"));
@@ -350,10 +384,11 @@
             <td class="n">${it.total}</td><td class="n">${each(it.total, it.people)}</td></tr>`).join("")}`).join("")}
       </table></div></div>
       <div class="card"><h2>people <span class="sub">— click one to see their visits</span></h2><div class="scroll"><table>
-        <tr><th>who</th><th class="n">visits</th><th>last seen</th><th class="n">time</th><th class="n">active</th><th class="n">throws</th><th>did</th><th>from</th><th>where</th></tr>
-        ${[...people].sort((a, b) => b.last - a.last).map((p) => `
+        <tr>${[["who", "who"], ["visits", "visits", "n"], ["last", "last seen"], ["time", "time", "n"], ["active", "active", "n"], ["throws", "throws", "n"]].map(([k, label, cls]) =>
+          `<th class="sort ${cls || ""}" data-sort="${k}" title="sort by ${label}">${label}${sortBy.key === k ? `<span class="arrow">${sortBy.dir < 0 ? "▾" : "▴"}</span>` : ""}</th>`).join("")}<th>did</th><th>from</th><th>where</th></tr>
+        ${[...people].sort((a, b) => sortBy.dir * (SORTS[sortBy.key](a) > SORTS[sortBy.key](b) ? 1 : SORTS[sortBy.key](a) < SORTS[sortBy.key](b) ? -1 : b.last - a.last)).map((p) => `
         <tr class="click" data-person="${esc(p.id)}"><td class="who">${esc(short(p))}</td><td class="n">${p.visits.length}</td><td>${esc(ago(p.last))}</td>
-          <td class="n">${dur(p.secs)}</td><td class="n">${dur(p.active)}</td><td class="n">${p.throws}</td>
+          <td class="n">${durOr(p.secs)}</td><td class="n">${durOr(p.active)}</td><td class="n">${p.throws || "–"}</td>
           <td>${p.links.map((l) => `<span class="tag link">${esc(l)}</span>`).join("")}${["dj", "hoop_play", "words_start"].filter((k) => p.did.has(k)).map((k) => `<span class="tag">${{ dj: "dj", hoop_play: "hoop", words_start: "words" }[k]}</span>`).join("")}</td>
           <td>${esc(p.ref || "")}</td><td>${esc([p.place, p.device].filter(Boolean).join(" · "))}</td></tr>`).join("")}
       </table></div></div>
@@ -368,6 +403,11 @@
     drawChart($("chart"), daysList.map((d) => ({ d, v: perDay.get(d).people.size, visits: perDay.get(d).visits })),
       (d) => { const ps = dayPeople(d); if (ps.length) openList("people on " + d, ps); });
     for (const tr of document.querySelectorAll("[data-person]")) tr.addEventListener("click", () => openPerson(people.find((p) => p.id === tr.dataset.person)));
+    for (const th of document.querySelectorAll("th[data-sort]")) th.addEventListener("click", () => {
+      const k = th.dataset.sort;
+      if (sortBy.key === k) sortBy.dir = -sortBy.dir; else { sortBy.key = k; sortBy.dir = k === "who" ? 1 : -1; }
+      render();
+    });
     for (const b of document.querySelectorAll("[data-list]")) b.addEventListener("click", (e) => { e.stopPropagation(); const l = lists[+b.dataset.list]; openList(l.title, l.people); });
     for (const row of document.querySelectorAll("tr.group")) {
       const toggle = () => {
@@ -417,11 +457,37 @@
       <div class="plist"><table>
         <tr><th>who</th><th class="n">visits</th><th>last seen</th><th class="n">time</th><th>where</th></tr>
         ${list.map((p) => `<tr class="click" data-pick="${esc(p.id)}"><td class="who">${esc(short(p))}</td><td class="n">${p.visits.length}</td><td>${esc(ago(p.last))}</td>
-          <td class="n">${dur(p.secs)}</td><td>${esc([p.place, p.device].filter(Boolean).join(" · "))}</td></tr>`).join("")}
+          <td class="n">${durOr(p.secs)}</td><td>${esc([p.place, p.device].filter(Boolean).join(" · "))}</td></tr>`).join("")}
       </table></div>`;
     panel.hidden = false; panel.scrollTop = 0;
     $("close").addEventListener("click", () => { panel.hidden = true; });
     for (const tr of panel.querySelectorAll("[data-pick]")) tr.addEventListener("click", () => openPerson(list.find((p) => p.id === tr.dataset.pick), () => openList(title, ps), title));
+  }
+
+  // a visit's actions in order, with grey lines for the throws, taps and so on in between. Newer visits record the
+  // running counts with every action, so each line sits exactly between two actions; older visits only have a
+  // count every 30 seconds, so their lines are placed at those moments instead (with a time)
+  const OWN = { knock: "knocks", pop: "pops", typed: "keys", note: "notes", drum: "drums", dance: "dances", gravity: "gravity", chute: "chutes" };
+  function timeline(v) {
+    const out = [], skip = new Set(["secs", "active"]);
+    let last = {};
+    const since = (n, ts) => {
+      const parts = TALLY.map(([k, name]) => [(n[k] || 0) - (last[k] || 0), name]).filter(([d]) => d > 0).map(([d, name]) => howMany(d, name));
+      for (const [k, x] of Object.entries(n)) if (!skip.has(k)) last[k] = Math.max(last[k] || 0, x);
+      if (parts.length) out.push({ ts, text: parts.join(" · ") });
+    };
+    const exact = v.events.some((e) => e.d.n);
+    const lastExact = exact ? Math.max(...v.events.filter((e) => e.d.n).map((e) => e.ts)) : 0;
+    // with exact counts, a 30-second count only matters for what happened after the last action
+    const ticks = v.tallies.filter((t) => !exact || t.ts > lastExact).map((t) => ({ t }));
+    for (const x of [...v.events.map((e) => ({ e })), ...ticks].sort((a, b) => (a.e || a.t).ts - (b.e || b.t).ts)) {
+      if (x.e) {
+        if (x.e.d.n) { since(x.e.d.n, 0); const k = OWN[x.e.event]; if (k) last[k] = (last[k] || 0) + 1; }
+        out.push(x);
+      }
+      else since(x.t.n, exact ? 0 : x.t.ts);
+    }
+    return out;
   }
 
   // a person's visits, newest first, each with its timeline; when opened from a list, a back link returns to it
@@ -434,10 +500,12 @@
       <form class="rename" id="rename"><span>name</span><input id="renameInput" maxlength="24" placeholder="who is this?" value="${esc((data.names && data.names[p.id]) || "")}"><button type="submit">save</button><span id="renameMsg"></span></form>
       <div class="sub">${p.visits.length} visit${p.visits.length === 1 ? "" : "s"} · first ${esc(when(p.first))} · ${esc([p.place, p.device].filter(Boolean).join(" · "))}${p.network ? " · " + esc(p.network) : ""}</div>
       ${[...p.visits].reverse().map((v) => {
-        const counts = TALLY.filter(([k]) => v.tally[k]).map(([k, name]) => `${v.tally[k]} ${name}`).join(" · ");
+        const counts = TALLY.filter(([k]) => v.tally[k]).map(([k, name]) => howMany(v.tally[k], name)).join(" · ");
         return `<div class="visit"><div class="who">${esc(when(v.start))}</div>
-          <div class="meta">${dur(v.secs)} on the site, ${dur(v.active)} active · ${esc(v.ref || "direct / unknown")} · ${esc(v.device || "")}</div>
-          <ol class="timeline">${v.events.map((e) => `<li><span class="t">+${dur((e.ts - v.start) / 1000)}</span><span>${esc(say(e))}</span></li>`).join("")}</ol>
+          <div class="meta">${Math.round(v.secs) ? dur(v.secs) + " on the site" : "left right away"}, ${Math.round(v.active) ? dur(v.active) + " active" : "didn't touch anything"} · ${esc(v.ref || "direct / unknown")} · ${esc(v.device || "")}</div>
+          <ol class="timeline">${timeline(v).map((x) => x.e
+            ? `<li><span class="t">+${dur((x.e.ts - v.start) / 1000)}</span><span>${esc(say(x.e))}</span></li>`
+            : `<li class="between"><span class="t">${x.ts ? "+" + dur((x.ts - v.start) / 1000) : ""}</span><span>${esc(x.text)}</span></li>`).join("")}</ol>
           ${counts ? `<div class="counts">${esc(counts)}</div>` : ""}</div>`;
       }).join("")}`;
     panel.hidden = false; panel.scrollTop = 0;
@@ -500,7 +568,11 @@
   for (const b of document.querySelectorAll("#range button")) b.addEventListener("click", () => {
     opts.days = +b.dataset.days; document.querySelectorAll("#range button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); load();
   });
-  $("labelled").addEventListener("change", (e) => { opts.labelled = e.target.checked; load(); });
+  for (const b of document.querySelectorAll("#exclude button")) b.addEventListener("click", () => {
+    const x = b.dataset.x, on = b.getAttribute("aria-pressed") !== "true";
+    b.setAttribute("aria-pressed", String(on));
+    if (x === "test") { opts.labelled = !on; load(); } else { opts[x] = on; render(); }
+  });
   $("logout").addEventListener("click", () => { forget(); showLogin(""); });
   load();
 })();
