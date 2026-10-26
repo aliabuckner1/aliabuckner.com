@@ -243,6 +243,11 @@
       if (ref === location.hostname.replace(/^www\./, "")) ref = "";
       this.ready = true;
       this.send("visit", { ref, src: qs.get("utm_source") || qs.get("ref") || "", w: innerWidth, h: innerHeight, bot: navigator.webdriver ? 1 : 0 });
+      // tidy the address bar once the source is logged, so visitors just see aliabuckner.com
+      if (qs.has("ref") || qs.has("utm_source")) {
+        for (const k of [...qs.keys()]) if (k === "ref" || k.startsWith("utm_")) qs.delete(k);
+        try { history.replaceState(null, "", location.pathname + (qs.toString() ? "?" + qs : "") + location.hash); } catch (e) {}
+      }
       setInterval(() => this.tally(), 30000);
       addEventListener("pagehide", () => this.tally());
       document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") this.tally(); });
