@@ -114,9 +114,11 @@
   .visit { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-top: 12px; }
   .visit .meta { color: var(--muted); font-size: 13px; margin: 2px 0 8px; }
   .timeline { list-style: none; margin: 0; padding: 0; font: 12.5px var(--mono); }
-  .timeline li { display: grid; grid-template-columns: 4.2em 1fr; gap: 8px; padding: 2px 0; }
+  .timeline li { display: grid; grid-template-columns: 4.8em 1fr; gap: 8px; padding: 2px 0; }
   .timeline .t { color: var(--muted); text-align: right; }
-  .timeline li.between { color: var(--muted); font-size: 11.5px; }
+  /* only the words are smaller, so the times still line up */
+  .timeline li.between { color: var(--muted); }
+  .timeline li.between span:last-child { font-size: 11.5px; align-self: center; }
   .counts { margin-top: 8px; color: var(--muted); font: 12px var(--mono); }
   .rename { display: flex; gap: 6px; align-items: center; margin: 10px 0 2px; font-size: 13px; color: var(--muted); }
   .rename input { font: inherit; font-size: 16px; width: 12em; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
@@ -250,7 +252,19 @@
       else v.events.push(r);
     }
     for (const v of visits.values()) {
-      v.secs = Math.max(v.tally.secs || 0, (v.end - v.start) / 1000);
+      // what counts is the last time they did something, not how long the tab stayed open: their last action, or the
+      // last heartbeat whose taps, keys, throws or active time had gone up (a heartbeat lags by up to 30 seconds)
+      const acts = [v.start, ...v.events.filter((e) => e.event !== "visit").map((e) => e.ts)];
+      let before = {};
+      for (const t of [...v.tallies].sort((a, b) => a.ts - b.ts)) {
+        if (["touches", "keys", "throws", "active"].some((k) => (t.n[k] || 0) > (before[k] || 0))) acts.push(t.ts);
+        before = t.n;
+      }
+      acts.sort((a, b) => a - b);
+      v.lastAct = acts[acts.length - 1];
+      // time on the site: from arriving to the last thing they did, leaving out any break of 30+ minutes (a tab left
+      // open overnight and picked up again the next day)
+      v.secs = acts.slice(1).reduce((sum, t, i) => sum + (t - acts[i] < 30 * 60000 ? t - acts[i] : 0), 0) / 1000;
       v.active = v.tally.active || 0;
       v.did = new Set(v.events.map((e) => e.event));
       v.keys = new Set([...v.did,
@@ -264,7 +278,7 @@
     for (const v of [...visits.values()].sort((a, b) => a.start - b.start)) {
       let p = people.get(v.visitor);
       if (!p) { p = { id: v.visitor, label: v.label, visits: [], first: v.start }; people.set(v.visitor, p); }
-      p.visits.push(v); p.last = v.start; p.label = p.label || v.label;
+      p.visits.push(v); p.last = Math.max(p.last || 0, v.lastAct); p.label = p.label || v.label;
     }
     for (const p of people.values()) {
       p.secs = p.visits.reduce((a, v) => a + v.secs, 0);

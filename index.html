@@ -223,7 +223,7 @@
   // A secret link names a device, so Alia's and her family's own visits can be told apart: ?me=alia, ?me=dad (?me=off forgets).
   const STATS_URL = "https://aliabuckner-scoreboard.aliabuckner-scoreboard.workers.dev/e";
   const stats = {
-    counts: {}, seen: new Set(), start: Date.now(), active: 0, lastInput: 0, ready: false,
+    counts: {}, seen: new Set(), start: Date.now(), active: 0, secs: 0, lastInput: 0, ready: false, lastSnap: "", lastTally: 0,
     rid: () => Math.random().toString(36).slice(2, 12) + Date.now().toString(36),
     init() {
       const qs = new URLSearchParams(location.search), me = qs.get("me");
@@ -248,12 +248,20 @@
         for (const k of [...qs.keys()]) if (k === "ref" || k.startsWith("utm_")) qs.delete(k);
         try { history.replaceState(null, "", location.pathname + (qs.toString() ? "?" + qs : "") + location.hash); } catch (e) {}
       }
-      setInterval(() => this.tally(), 30000);
-      addEventListener("pagehide", () => this.tally());
-      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") this.tally(); });
+      // a heartbeat with the running totals every 30 seconds, but only from a tab that's on screen and only when
+      // something has changed; plus a last one when the page is hidden or closed
+      setInterval(() => { if (document.visibilityState === "visible") this.tally(); }, 30000);
+      addEventListener("pagehide", () => this.tally(true));
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") this.tally(true); });
       for (const t of ["pointerdown", "keydown"]) addEventListener(t, () => { this.lastInput = Date.now(); }, { passive: true, capture: true });
-      // active time: seconds with a tap or key in the last 5, while the page is on screen
-      setInterval(() => { if (document.visibilityState === "visible" && Date.now() - this.lastInput < 5000) this.active += 1; }, 1000);
+      // time on the site: seconds on screen, up to 2 minutes after the last tap or key (so a forgotten tab stops
+      // counting); active time: seconds with a tap or key in the last 5
+      setInterval(() => {
+        if (document.visibilityState !== "visible") return;
+        const since = Date.now() - Math.max(this.lastInput, this.start);
+        if (since < 120000) this.secs += 1;
+        if (Date.now() - this.lastInput < 5000) this.active += 1;
+      }, 1000);
     },
     send(event, data) {
       if (!this.ready) return;
@@ -266,7 +274,13 @@
     event(name, data) { this.send(name, this.withCounts(data)); },
     first(name, data) { if (!this.seen.has(name)) { this.seen.add(name); this.send(name, this.withCounts(data)); } },
     count(name, n = 1) { this.counts[name] = (this.counts[name] || 0) + n; },
-    tally() { this.send("tally", { secs: Math.round((Date.now() - this.start) / 1000), active: this.active, ...this.counts }); },
+    tally(last = false) {
+      const snap = JSON.stringify([this.secs, this.active, this.counts]), now = Date.now();
+      if (snap === this.lastSnap || now - this.lastTally < (last ? 5000 : 25000)) return;
+      this.lastSnap = snap; this.lastTally = now;
+      // the last one, as the page is hidden or closed, is marked so it's always kept
+      this.send("tally", { v: 2, ...(last ? { end: 1 } : {}), secs: this.secs, active: this.active, ...this.counts });
+    },
   };
   const DJ_HINTS = [
     "tap high, mid or low to add drums",

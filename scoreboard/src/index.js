@@ -71,6 +71,9 @@ export default {
 
 // ---- visit stats ------------------------------------------------------------------------------------------------
 const EVENT_NAME = /^[a-z_]{1,24}$/, ID = /^[a-z0-9]{6,40}$/;
+// only the real site and Alia's test page count; a copy of the page opened from a file or inside some preview (which
+// once sent 17,000 heartbeats in a day and used up the database's free daily writes) is ignored
+const HOSTS = /^((www\.)?aliabuckner\.com|localhost(:\d+)?|127\.0\.0\.1(:\d+)?|192\.168\.\d{1,3}\.\d{1,3}(:\d+)?)$/;
 
 async function logEvent(req, env) {
   let b;
@@ -80,6 +83,21 @@ async function logEvent(req, env) {
   let data = b.data == null ? null : JSON.stringify(b.data);
   if (data && data.length > 800) data = data.slice(0, 800);
   const clip = (v, n) => (v == null || v === "" ? null : String(v).slice(0, n));
+  if (!HOSTS.test(String(b.host || ""))) return new Response(null, { status: 204, headers: { "access-control-allow-origin": "*" } });
+  // a heartbeat ("tally") is only kept when something changed since the visit's last event, and never more than one
+  // every 20 seconds; pages still running older code send one every 30 seconds whether anything happened or not.
+  // (The visit index already holds the row ids in order, so finding the last one reads a single row.)
+  if (b.event === "tally") {
+    const last = await env.DB.prepare("SELECT ts, event, data FROM events WHERE visit = ? ORDER BY id DESC LIMIT 1").bind(b.visit).first();
+    if (last && last.event === "tally") {
+      const same = (a, c) => { try { const x = JSON.parse(a || "{}"), y = JSON.parse(c || "{}"); delete x.secs; delete y.secs; return JSON.stringify(x) === JSON.stringify(y); } catch (e) { return false; } };
+      // newer pages (v: 2) only send when something changed, so only older pages need the duplicate check
+      const newer = b.data && b.data.v === 2;
+      // ...and the last one a page sends as it closes is always kept, so nothing done in its final seconds is lost
+      const closing = newer && b.data.end === 1;
+      if (!closing && (Date.now() - last.ts < 20000 || (!newer && same(last.data, data)))) return new Response(null, { status: 204, headers: { "access-control-allow-origin": "*" } });
+    }
+  }
   await env.DB.prepare(
     "INSERT INTO events (ts, host, visitor, visit, event, data, label, device, country, city, network) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
   ).bind(Date.now(), clip(b.host, 60), b.visitor, b.visit, b.event, data, clip(b.label, 12), clip(b.device, 12),
